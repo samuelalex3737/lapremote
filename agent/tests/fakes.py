@@ -9,6 +9,8 @@ from dataclasses import replace
 from PIL import Image
 
 from lapremote.media.base import MediaBackend, MediaCommand, SessionSnapshot, now_ms, thumbnail_jpeg
+from lapremote.protocol import PowerActionName
+from lapremote.shortcuts import LaunchError
 from lapremote.system.volume import VolumeError
 
 
@@ -114,3 +116,45 @@ class FakeVolume:
 
     async def set_muted(self, muted: bool) -> None:
         self.muted = muted
+
+
+class FakePower:
+    """Records power actions. Tests must never lock, sleep or shut down the real laptop."""
+
+    def __init__(self) -> None:
+        self.actions: list[PowerActionName] = []
+
+    def run(self, action: PowerActionName) -> None:
+        self.actions.append(action)
+
+
+class FakeLauncher:
+    """Records what would have been opened instead of starting browsers or apps."""
+
+    def __init__(self) -> None:
+        self.urls: list[str] = []
+        self.apps: list[str] = []
+        self.fail = False
+
+    def open_url(self, url: str) -> None:
+        if self.fail:
+            msg = "no browser"
+            raise LaunchError(msg)
+        self.urls.append(url)
+
+    def open_app(self, target: str) -> None:
+        if self.fail:
+            msg = "no app"
+            raise LaunchError(msg)
+        self.apps.append(target)
+
+
+class FakeBrightness:
+    def __init__(self, level: int = 70) -> None:
+        self.level = level
+
+    def get(self) -> int:
+        return self.level
+
+    def set(self, level: int) -> None:
+        self.level = level

@@ -13,7 +13,8 @@ import uvicorn
 from lapremote import __version__
 from lapremote.config import ConfigError, load_config
 from lapremote.protocol import MAX_MESSAGE_BYTES
-from lapremote.server import INPUT_DRY_RUN_ENV, PORT_ENV
+from lapremote.server import PORT_ENV
+from lapremote.services import INPUT_DRY_RUN_ENV
 
 # Listen on every interface so phones on the same Wi-Fi can connect. Every
 # message except pairing requires a device token.

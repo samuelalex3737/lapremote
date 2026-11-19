@@ -29,27 +29,23 @@ from lapremote.config import Config, data_dir, load_config
 from lapremote.connection import Connection
 from lapremote.core import Agent
 from lapremote.discovery import Advertiser
-from lapremote.input.service import (
-    InputDevices,
-    ScreenRect,
-    detect_input_devices,
-    register_input,
-)
+from lapremote.input.service import InputDevices
 from lapremote.logging_setup import get_logger, log_event, setup_logging
 from lapremote.media.base import MediaBackend
-from lapremote.media.keys_fallback import MediaKeys
-from lapremote.media.service import MediaService, create_media_backend
 from lapremote.preview.calibration import CALIBRATION_PAGE
-from lapremote.preview.capture import Grabber, PreviewService, create_grabber
+from lapremote.preview.capture import Grabber
 from lapremote.protocol import Ack
 from lapremote.router import MSG_INVALID
 from lapremote.security.pairing import CODE_TTL_SECONDS
 from lapremote.security.ratelimit import Limits
-from lapremote.system.context import ContextService, ForegroundReader, make_reader
+from lapremote.services import Overrides, build_services
+from lapremote.shortcuts import Launcher
+from lapremote.system.brightness import BrightnessBackend
+from lapremote.system.context import ForegroundReader
 from lapremote.system.dpi import enable_dpi_awareness
 from lapremote.system.network import detect_lan_ip
-from lapremote.system.platform_info import detect_display_server
-from lapremote.system.volume import VolumeBackend, VolumeService, create_volume_backend
+from lapremote.system.power import PowerBackend
+from lapremote.system.volume import VolumeBackend
 
 # Windows has no registry entry for these, so StaticFiles would send text/plain.
 mimetypes.add_type("application/manifest+json", ".webmanifest")
@@ -57,7 +53,6 @@ mimetypes.add_type("text/javascript", ".js")
 mimetypes.add_type("font/woff2", ".woff2")
 
 PORT_ENV = "LAPREMOTE_PORT"
-INPUT_DRY_RUN_ENV = "LAPREMOTE_INPUT_DRY_RUN"
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 AUTH_TIMEOUT_SECONDS = 5.0
 CLOSE_AUTH_TIMEOUT = 4001
@@ -233,9 +228,12 @@ def create_app(  # noqa: PLR0913 - explicit knobs keep tests free of monkeypatch
     auth_timeout: float = AUTH_TIMEOUT_SECONDS,
     input_devices: InputDevices | None = None,
     media_backend: MediaBackend | None = None,
-    volume_backend: VolumeBackend | None = None,
+    volume_backend: VolumeBackend | Literal["auto"] | None = "auto",
     foreground_reader: ForegroundReader | Literal["auto"] | None = "auto",
     grabber: Grabber | Literal["auto"] | None = "auto",
+    brightness_backend: BrightnessBackend | Literal["auto"] | None = "auto",
+    power_backend: PowerBackend | Literal["auto"] = "auto",
+    launcher: Launcher | Literal["auto"] = "auto",
 ) -> FastAPI:
     # Before anything touches the screen, so coordinates are physical pixels on Windows.
     dpi_mode = enable_dpi_awareness()
@@ -243,28 +241,20 @@ def create_app(  # noqa: PLR0913 - explicit knobs keep tests free of monkeypatch
     config = config or load_config()
     setup_logging(home / "logs", console=console_log)
     agent = Agent(config, home, limits=limits)
-    if input_devices is None:
-        input_devices = detect_input_devices(
-            agent.os,
-            detect_display_server(agent.os),
-            dry_run=os.environ.get(INPUT_DRY_RUN_ENV) == "1",
-        )
-    preview = PreviewService(agent, create_grabber() if grabber == "auto" else grabber)
-    preview.register()
-
-    async def monitor_rects() -> list[ScreenRect]:
-        return [ScreenRect(m.left, m.top, m.width, m.height) for m in await preview.monitors()]
-
-    register_input(agent, input_devices, monitor_rects if grabber is not None else None)
-    keys = MediaKeys(input_devices.keyboard)
-    hint: str | None = None
-    if media_backend is None:
-        media_backend, hint = create_media_backend(agent.os)
-    reader = make_reader() if foreground_reader == "auto" else foreground_reader
-    MediaService(agent, media_backend, keys, reader or (lambda: None), hint).register()
-    ContextService(agent, reader).register()
-    VolumeService(agent, volume_backend or create_volume_backend(agent.os), keys).register()
-    log_event(log, "input_ready", available=input_devices.permission.available, dpi=dpi_mode)
+    services = build_services(
+        agent,
+        Overrides(
+            input_devices=input_devices,
+            media_backend=media_backend,
+            volume_backend=volume_backend,
+            foreground_reader=foreground_reader,
+            grabber=grabber,
+            brightness_backend=brightness_backend,
+            power_backend=power_backend,
+            launcher=launcher,
+        ),
+    )
+    log_event(log, "services_ready", input=services.input_available, dpi=dpi_mode)
     opts = ServerOptions(
         port=port or int(os.environ.get(PORT_ENV) or config.port),
         lan_ip=lan_ip,
@@ -282,6 +272,7 @@ def create_app(  # noqa: PLR0913 - explicit knobs keep tests free of monkeypatch
         lifespan=_make_lifespan(agent, opts),
     )
     app.state.agent = agent
+    app.state.services = services
 
     @app.get("/api/health")
     async def health() -> HealthResponse:

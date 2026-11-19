@@ -17,6 +17,7 @@ export const osSchema = z.enum(['windows', 'macos', 'linux'])
 export const buttonSchema = z.enum(['left', 'right', 'middle'])
 export const modifierSchema = z.enum(['ctrl', 'alt', 'shift', 'meta'])
 export const powerActionSchema = z.enum(['lock', 'sleep', 'shutdown', 'restart'])
+export type PowerActionName = z.infer<typeof powerActionSchema>
 export const timerModeSchema = z.enum(['minutes', 'end_of_media'])
 export const timerThenSchema = z.enum(['pause', 'pause_lock', 'pause_sleep'])
 export const mediaStatusSchema = z.enum(['playing', 'paused', 'stopped'])

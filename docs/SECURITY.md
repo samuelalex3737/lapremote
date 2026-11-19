@@ -35,6 +35,12 @@ arguments. No argument ever contains text from the phone:
 | `media/linux.py` | `playerctl` | fixed flags, a player name that must be a currently listed MPRIS player, `position <number>` |
 | `system/volume.py` | `osascript` / `pactl` | fixed scripts or sink names with integers and booleans formatted by the agent |
 | `system/context.py` | `xdotool` (Linux X11) | `getactivewindow getwindowname` / `getwindowpid` only |
+| `shortcuts.py` | the preferred browser (found at a fixed install path or by `which`), `/usr/bin/open`, `gio`, or a stored app | one argument: an http(s) URL that has already been validated, or a stored app path or bundle id validated when it was saved (must exist and be an app type). No shell and no extra arguments. On Windows apps start with `os.startfile`. |
+| `system/power.py` | `shutdown` (Windows), `pmset` / `osascript` (macOS), `loginctl` / `systemctl` (Linux) | fixed arguments chosen from the action name |
+
+Power actions also need a single-use, action-bound confirm token that lives for 10 seconds
+(`power.prepare` then `power.action`), so a captured or replayed message can't shut the laptop
+down.
 
 Windows uses in-process APIs (WinRT, Core Audio, pywin32) and runs no subprocess.
 

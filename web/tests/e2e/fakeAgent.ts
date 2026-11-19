@@ -17,13 +17,13 @@ export const FEATURES = {
   input: FEATURE,
   media: FEATURE,
   volume: FEATURE,
-  brightness: { available: false, reason: 'Not available in this version yet.' },
+  brightness: FEATURE,
   preview: FEATURE,
   context: FEATURE,
-  power: { available: false, reason: 'Not available in this version yet.' },
-  launcher: { available: false, reason: 'Not available in this version yet.' },
-  scenes: { available: false, reason: 'Not available in this version yet.' },
-  timer: { available: false, reason: 'Not available in this version yet.' },
+  power: FEATURE,
+  launcher: FEATURE,
+  scenes: FEATURE,
+  timer: FEATURE,
   ai: { available: false, reason: 'Not available in this version yet.' },
   secureContext: false,
 }
@@ -62,6 +62,9 @@ export function context(patch: Record<string, unknown> = {}) {
   }
 }
 
+export const DEFAULT_SHORTCUTS = [{"id": "netflix", "name": "Netflix", "kind": "url", "url": "https://www.netflix.com/browse", "icon": "netflix"}, {"id": "youtube", "name": "YouTube", "kind": "url", "url": "https://www.youtube.com/", "icon": "youtube"}, {"id": "youtube-music", "name": "YouTube Music", "kind": "url", "url": "https://music.youtube.com/", "icon": "music"}, {"id": "prime-video", "name": "Prime Video", "kind": "url", "url": "https://www.primevideo.com/", "icon": "prime"}, {"id": "spotify", "name": "Spotify", "kind": "url", "url": "https://open.spotify.com/", "icon": "spotify"}]
+export const DEFAULT_SCENES = [{"id": "movie-night", "name": "Movie Night", "steps": [{"type": "volume.set", "level": 40}, {"type": "brightness.set", "level": 60}, {"type": "launch.open", "shortcutId": "netflix"}]}, {"id": "focus-music", "name": "Focus Music", "steps": [{"type": "launch.open", "shortcutId": "youtube-music"}, {"type": "volume.set", "level": 25}]}]
+
 interface Sent {
   type: string
   payload: Record<string, unknown>
@@ -75,6 +78,9 @@ export class FakeAgent {
   /** Monitors reported in preview.meta. */
   monitors = [{ index: 0, left: 0, top: 0, width: 1920, height: 1080, primary: true }]
   private frameNo = 0
+  shortcuts: { id: string }[] = structuredClone(DEFAULT_SHORTCUTS)
+  scenes: { id: string }[] = structuredClone(DEFAULT_SCENES)
+  timer: Record<string, unknown> = { active: false, endsAt: null, mode: null, then: null }
 
   constructor(private readonly initial: { sessions: unknown[]; context: unknown }) {}
 
@@ -115,6 +121,10 @@ export class FakeAgent {
         this.push('media.state', { sessions: this.initial.sessions, currentId: 'w1', ts: Date.now() })
         this.push('volume.state', { level: 35, muted: false })
         if (this.initial.context !== null) this.push('context.state', this.initial.context)
+        this.push('shortcuts.state', { shortcuts: this.shortcuts })
+        this.push('scenes.state', { scenes: this.scenes })
+        this.push('timer.state', this.timer)
+        this.push('brightness.state', { level: 70, supported: true })
         return
       case 'ping':
         this.push('pong', { t: msg.payload.t })
@@ -126,10 +136,41 @@ export class FakeAgent {
         return
       case 'preview.ack':
         return
+      case 'shortcuts.save': {
+        const s = msg.payload.shortcut as { id: string }
+        this.shortcuts = [...this.shortcuts.filter((x) => x.id !== s.id), s]
+        this.push('shortcuts.state', { shortcuts: this.shortcuts })
+        break
+      }
+      case 'shortcuts.delete':
+        this.shortcuts = this.shortcuts.filter((x) => x.id !== msg.payload.shortcutId)
+        this.push('shortcuts.state', { shortcuts: this.shortcuts })
+        break
+      case 'scenes.save': {
+        const s = msg.payload.scene as { id: string }
+        this.scenes = [...this.scenes.filter((x) => x.id !== s.id), s]
+        this.push('scenes.state', { scenes: this.scenes })
+        break
+      }
+      case 'timer.set':
+        this.timer = { active: true, endsAt: Date.now() + Number(msg.payload.minutes ?? 1) * 60_000, mode: msg.payload.mode, then: msg.payload.then }
+        this.push('timer.state', this.timer)
+        break
+      case 'timer.cancel':
+        this.timer = { active: false, endsAt: null, mode: null, then: null }
+        this.push('timer.state', this.timer)
+        break
+      case 'power.prepare':
+        this.push('power.token', { action: msg.payload.action, confirmToken: 'tok-123', expiresAt: Date.now() + 10_000 })
+        return
+      case 'brightness.set':
+        this.push('brightness.state', { level: msg.payload.level, supported: true })
+        break
       default:
-        if (msg.type !== 'input.move' && msg.type !== 'input.scroll') {
-          this.push('ack', { id: msg.id, ok: true, error: null })
-        }
+        break
+    }
+    if (msg.type !== 'input.move' && msg.type !== 'input.scroll') {
+      this.push('ack', { id: msg.id, ok: true, error: null })
     }
   }
 

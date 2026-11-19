@@ -7,6 +7,7 @@ import type { ContextInfo } from '../lib/adaptive.ts'
 import { localCredentialStore } from '../lib/credentials.ts'
 import { detectDevice, socketUrl } from '../lib/device.ts'
 import { MediaStore, type MediaSnapshot } from '../lib/mediaStore.ts'
+import type { AgentPayload, Scene, Shortcut } from '../lib/protocol.ts'
 import { RemoteClient, type Snapshot, type SocketLike } from '../lib/ws.ts'
 import { useUi } from './ui.ts'
 
@@ -42,6 +43,27 @@ mediaStore.subscribe(() => {
 export const useLaptopContext = create<{ context: ContextInfo | null }>(() => ({ context: null }))
 client.on('context.state', (context) => {
   useLaptopContext.setState({ context })
+})
+
+/** Launcher shortcuts, scenes, sleep timer and brightness, as last pushed by the agent. */
+export interface LaptopExtras {
+  shortcuts: Shortcut[] | null
+  scenes: Scene[] | null
+  timer: AgentPayload<'timer.state'> | null
+  brightness: AgentPayload<'brightness.state'> | null
+}
+export const useExtras = create<LaptopExtras>(() => ({ shortcuts: null, scenes: null, timer: null, brightness: null }))
+client.on('shortcuts.state', (p) => {
+  useExtras.setState({ shortcuts: p.shortcuts })
+})
+client.on('scenes.state', (p) => {
+  useExtras.setState({ scenes: p.scenes })
+})
+client.on('timer.state', (timer) => {
+  useExtras.setState({ timer })
+})
+client.on('brightness.state', (brightness) => {
+  useExtras.setState({ brightness })
 })
 
 client.on('toast', (p) => {

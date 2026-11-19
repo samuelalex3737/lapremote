@@ -17,6 +17,7 @@ dependencies = [
     "pyobjc-framework-quartz>=13.0 ; sys_platform == 'darwin'",
     "pywin32>=312 ; sys_platform == 'win32'",
     "qrcode>=8.2",
+    "screen-brightness-control>=0.27.2 ; sys_platform != 'darwin'",
     "uvicorn[standard]>=0.54.0",
     "winrt-windows-foundation>=4!10.0.28000.2957 ; sys_platform == 'win32'",
     "winrt-windows-foundation-collections>=4!10.0.28000.2957 ; sys_platform == 'win32'",
@@ -86,7 +87,7 @@ files = ["lapremote", "tests", "../scripts"]
 
 [[tool.mypy.overrides]]
 # No type information is published for these COM wrappers.
-module = ["pycaw.*", "comtypes.*"]
+module = ["pycaw.*", "comtypes.*", "screen_brightness_control.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

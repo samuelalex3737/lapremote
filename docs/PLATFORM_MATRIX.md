@@ -41,5 +41,12 @@ Development host so far: Windows 11 Home Single Language, build 26300, one 1920x
 | Screen preview (mss, JPEG, at most 2 frames in flight) | 6 | Tested: 7.75 fps at 8fps/480px, 108 KB/s, agent 16.8% of one core | Implemented-untested (needs Screen Recording permission) | Implemented-untested (X11; mss can't capture Wayland) |
 | Tap-to-click on the preview (absolute click per monitor) | 6 | Tested: 5/5 calibration targets, worst error 1.7 px (limit 10 px), one 1920x1080 monitor at 125% | Implemented-untested | Implemented-untested (X11) |
 | Multi-monitor picker | 6 | UI tested with a scripted two-monitor agent; offset maths unit-tested (negative and non-zero origins). Only one monitor exists on the dev laptop | same | same |
+| Keys tab (send, live typing, quick keys, combos, shortcuts) | 7 | Tested in Playwright (scripted agent); key injection itself tested in Phase 2 | same (Cmd shortcuts) | same |
+| Launcher: URL in preferred browser (Brave first) | 7 | Tested (real: opened a tab in Brave from its per-user install path) | Implemented-untested (`open -a`) | Implemented-untested (brave-browser / xdg-open) |
+| Launcher: registered apps | 7 | Validation unit-tested (.exe/.lnk/.url/.appref-ms, absolute, existing); `os.startfile` not run in tests | Implemented-untested (bundle id or .app via `open`) | Implemented-untested (.desktop via `gio launch`, executables) |
+| Scenes | 7 | Runner and socket flow tested with fakes | same | same |
+| Sleep timer (minutes, end of media, 30s fade, restore volume) | 7 | Logic tested with fakes; end to end over the socket with a short timer | same | same |
+| Brightness | 7 | Tested (real read 80% and write in 157 ms on the built-in BOE panel) | Unsupported (no public API for the built-in display) | Implemented-untested (screen-brightness-control) |
+| Power: lock / sleep / restart / shut down with confirm tokens | 7 | Token rules tested; real actions not run on purpose (pending Sam). Note: with hibernation enabled, Windows "sleep" hibernates | Implemented-untested (pmset / System Events) | Implemented-untested (loginctl / systemctl) |
 
 Rows are added as each phase lands.

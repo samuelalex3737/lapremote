@@ -19,6 +19,9 @@ interface UiState {
   /** Context key of the last banner the person dismissed. */
   dismissedBanner: string | null
   autoSwitch: boolean
+  /** The sleep timer's last "when it ends" choice, reused next time. */
+  timerThen: 'pause' | 'pause_lock' | 'pause_sleep'
+  setTimerThen: (then: 'pause' | 'pause_lock' | 'pause_sleep') => void
   setMode: (mode: PlayerMode) => void
   dismissBanner: (key: string) => void
   setAutoSwitch: (on: boolean) => void
@@ -63,6 +66,10 @@ export const useUi = create<UiState>((set, get) => ({
   mode: 'auto',
   dismissedBanner: null,
   autoSwitch: initialAutoSwitch(),
+  timerThen: 'pause',
+  setTimerThen: (timerThen) => {
+    set({ timerThen })
+  },
   setMode: (mode) => {
     set({ mode })
   },

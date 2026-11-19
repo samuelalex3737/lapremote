@@ -1,0 +1,19 @@
+[
+  {
+    "id": "movie-night",
+    "name": "Movie Night",
+    "steps": [
+      { "type": "volume.set", "level": 40 },
+      { "type": "brightness.set", "level": 60 },
+      { "type": "launch.open", "shortcutId": "netflix" }
+    ]
+  },
+  {
+    "id": "focus-music",
+    "name": "Focus Music",
+    "steps": [
+      { "type": "launch.open", "shortcutId": "youtube-music" },
+      { "type": "volume.set", "level": 25 }
+    ]
+  }
+]

@@ -22,6 +22,7 @@ import { Button, IconButton } from '../../ui/Button.tsx'
 import { Card, EmptyState, SegmentedControl, Skeleton } from '../../ui/primitives.tsx'
 import { Slider } from '../../ui/Slider.tsx'
 import { PresentationView } from './PresentationView.tsx'
+import { QuickLaunch, TimerPill } from './extras.tsx'
 import { Artwork, AppBadge } from './parts.tsx'
 import { Scrubber } from './Scrubber.tsx'
 
@@ -233,6 +234,7 @@ export function NowPlayingTab() {
 
   return (
     <div className="flex flex-col gap-5 pt-2">
+      <TimerPill />
       <SegmentedControl
         label="Controls"
         options={MODES}
@@ -250,7 +252,8 @@ export function NowPlayingTab() {
             <EmptyState
               icon={view === 'movie' ? <Monitor className="h-10 w-10" /> : <Music2 className="h-10 w-10" />}
               title="Nothing playing"
-              body="Start something on your laptop and it shows up here."
+              body="Start something on your laptop, or open one of these."
+              action={<QuickLaunch />}
             />
           ) : view === 'movie' ? (
             <MovieView session={session} now={now} />

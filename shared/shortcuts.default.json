@@ -1,0 +1,7 @@
+[
+  { "id": "netflix", "name": "Netflix", "kind": "url", "url": "https://www.netflix.com/browse", "icon": "netflix" },
+  { "id": "youtube", "name": "YouTube", "kind": "url", "url": "https://www.youtube.com/", "icon": "youtube" },
+  { "id": "youtube-music", "name": "YouTube Music", "kind": "url", "url": "https://music.youtube.com/", "icon": "music" },
+  { "id": "prime-video", "name": "Prime Video", "kind": "url", "url": "https://www.primevideo.com/", "icon": "prime" },
+  { "id": "spotify", "name": "Spotify", "kind": "url", "url": "https://open.spotify.com/", "icon": "spotify" }
+]

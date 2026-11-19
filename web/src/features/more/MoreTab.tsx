@@ -6,6 +6,9 @@ import { useUi, type MoreScreen } from '../../store/ui.ts'
 import { IconButton } from '../../ui/Button.tsx'
 import { ListRow } from '../../ui/primitives.tsx'
 import { DevicesScreen } from '../devices/DevicesScreen.tsx'
+import { PowerScreen } from '../power/PowerScreen.tsx'
+import { ScenesScreen } from '../scenes/ScenesScreen.tsx'
+import { TimerScreen } from '../timer/TimerScreen.tsx'
 import { FeatureGate } from '../FeatureGate.tsx'
 import { SettingsScreen } from '../settings/SettingsScreen.tsx'
 
@@ -19,7 +22,7 @@ interface Entry {
 const ENTRIES: Entry[] = [
   { id: 'scenes', title: 'Scenes', icon: <Clapperboard className="h-5 w-5" />, feature: 'scenes' },
   { id: 'timer', title: 'Sleep timer', icon: <Timer className="h-5 w-5" />, feature: 'timer' },
-  { id: 'power', title: 'Power', icon: <Power className="h-5 w-5" />, feature: 'power' },
+  { id: 'power', title: 'Power & display', icon: <Power className="h-5 w-5" />, feature: 'power' },
   { id: 'ai', title: 'Ask LapRemote', icon: <Bot className="h-5 w-5" />, feature: 'ai' },
   { id: 'devices', title: 'Devices', icon: <Smartphone className="h-5 w-5" /> },
   { id: 'settings', title: 'Settings', icon: <Settings className="h-5 w-5" /> },
@@ -32,8 +35,19 @@ function Screen({ entry }: { entry: Entry }) {
     case 'settings':
       return <SettingsScreen />
     case 'scenes':
+      return (
+        <FeatureGate feature="scenes" title="Scenes">
+          <ScenesScreen />
+        </FeatureGate>
+      )
     case 'timer':
+      return (
+        <FeatureGate feature="timer" title="The sleep timer">
+          <TimerScreen />
+        </FeatureGate>
+      )
     case 'power':
+      return <PowerScreen />
     case 'ai':
       // Shows the agent's reason while the laptop doesn't offer this feature.
       return (

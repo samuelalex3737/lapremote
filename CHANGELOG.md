@@ -4,6 +4,31 @@ All notable changes to LapRemote. Versions follow [Semantic Versioning](https://
 
 ## [Unreleased]
 
+### Phase 7 - Keyboard, launcher, scenes, timer, power
+
+- Keys tab:
+  - Send or Live typing; Live sends a diff, so backspace works too
+  - quick keys including OS-aware Start, Spotlight or Activities, and arrows
+  - common shortcuts with Cmd on macOS, and a combo builder (modifiers, then a key)
+- Launcher:
+  - `~/.lapremote/shortcuts.json` seeded with Netflix, YouTube, YouTube Music, Prime Video and Spotify
+  - URLs (http/https only) open in the preferred browser, Brave first
+  - apps open only from validated, stored paths or bundle ids, never with arguments
+  - add, edit, reorder and delete from the phone; "Open a website" sheet with Open once or Save and open
+- Scenes: `~/.lapremote/scenes.json` seeded with Movie Night and Focus Music. Steps run in the
+  background with a toast at the end naming any failed step. Editor on the phone.
+- Sleep timer:
+  - presets of 15/30/45/60/90 minutes, or the end of the current track (disabled when the length is unknown)
+  - pause, pause + lock or pause + sleep at the end
+  - the volume fades over the last 30 seconds and is restored after pausing
+  - live countdown on Now Playing
+- Power: lock, sleep, restart and shut down. Hold to confirm (1.2s) on the phone plus a
+  single-use, action-bound token from the agent that is valid for 10 seconds.
+- Brightness: get, set and push (screen-brightness-control). Reported as unsupported on macOS.
+- Agent `Actions` facade shared by scenes, the timer and (next) the AI planner. Service wiring
+  moved to `services.py`.
+- "Nothing playing" shows quick-launch shortcuts.
+
 ### Phase 6 - Live screen preview and tap-to-click
 
 - Agent preview:

@@ -20,10 +20,13 @@ from lapremote.media.base import MediaBackend, NoSessionBackend
 from lapremote.preview.capture import Grabber
 from lapremote.security.ratelimit import Limits
 from lapremote.server import create_app
+from lapremote.shortcuts import Launcher
+from lapremote.system.brightness import BrightnessBackend
 from lapremote.system.context import ForegroundReader
+from lapremote.system.power import PowerBackend
 from lapremote.system.volume import VolumeBackend
 
-from .fakes import FakeVolume
+from .fakes import FakeLauncher, FakePower, FakeVolume
 
 ORIGIN = "http://testserver"
 
@@ -39,6 +42,9 @@ def make_app(
     volume_backend: VolumeBackend | None = None,
     foreground_reader: ForegroundReader | None = None,
     grabber: Grabber | None = None,
+    brightness_backend: BrightnessBackend | None = None,
+    power_backend: PowerBackend | None = None,
+    launcher: Launcher | None = None,
 ) -> FastAPI:
     # Never inject real input from tests: default to the dry-run backend.
     devices = input_devices or detect_input_devices("windows", None, dry_run=True)
@@ -60,6 +66,10 @@ def make_app(
         foreground_reader=foreground_reader,
         # Tests never capture the real screen unless they pass a grabber.
         grabber=grabber,
+        brightness_backend=brightness_backend,
+        # Never the real power or launcher backends from tests.
+        power_backend=power_backend or FakePower(),
+        launcher=launcher or FakeLauncher(),
     )
 
 
