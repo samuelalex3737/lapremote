@@ -60,4 +60,7 @@ First-time Playwright setup: `npx playwright install chromium webkit`.
 | WebSocket | pair, resume, bad token, expired and reused codes, auth timeout (4001), Origin check (4003), role denial, malformed JSON/envelope/payload, unknown types, binary frames, pairing/general/key.text rate limits, revoke closes the socket, role changes, logs never hold tokens, codes or typed text |
 | Real socket | a tiny Python client pairs, resumes and pings a live uvicorn agent; wrong Origin gets HTTP 403 |
 | Network | LAN IP choice skips WSL, VirtualBox, Docker and VPN adapters |
+| Input (agent) | sub-pixel carry, click/drag/lock release, per-OS scroll units and direction, combos release modifiers on failure, zoom keys, allowlist, permission matrix (macOS Accessibility, Wayland), DPI awareness, guest move-only, buttons released on disconnect and revoke, dry run |
+| Gestures (web) | every rule in the Phase 2 table with synthetic pointer sequences, plus edge cases (7px is not a tap, 180ms is not a tap, pinch plus drift does not scroll, leftover finger after scroll, cancel mid-drag), the coalescing sender, combos, settings, haptics |
+| Trackpad (e2e) | a real tap produces `input.click`; Chromium touch events produce moves and two-finger scrolls on the agent (read from the dry-run log); settings persist |
 | Web | WS client (pairing, resume, backoff 0.5-5s, offline queue, acks, timeouts, latency, revoke), credentials storage, device naming (vitest); resume over a real socket, wrong code from the QR link, code input rules, unpaired token (Playwright, iPhone 15 + Pixel 8) |

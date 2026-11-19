@@ -161,6 +161,17 @@ These do not change the contract. They pin down how the contract is read.
    - `1001`: the agent is stopping
 7. **Key names.** `key.press.key` must be one of the names in `KEY_NAMES` in `protocol.py`
    (mirrored in `protocol.ts`). `modifiers` are `ctrl`, `alt`, `shift` and `meta` (Win / Cmd).
+8. **Input units.**
+   - `input.move` `dx`/`dy` are cursor pixels after client-side acceleration. Fractions are
+     carried over to the next message on both sides.
+   - `input.scroll` `dx`/`dy` are wheel notches (1.0 = one notch of a normal mouse wheel). The
+     phone sends fractions in steps of 1/120. `dy > 0` moves the view down the page, and `dx > 0`
+     moves it right.
+   - Windows scrolls in 1/120 notch steps, macOS in quarter notches and Linux (X11) in whole
+     notches. The remainder is carried over.
+   - `input.zoom` presses Ctrl + `=`/`-` (Cmd on macOS).
+   - If a phone disconnects while holding a mouse button (`input.down`), the agent releases the
+     button.
 
 ## Canonical message list
 
@@ -242,3 +253,4 @@ scenes.state
 |---|---|
 | 2026-11-19 | Phase 0: contract copied from the build spec. |
 | 2026-11-19 | Phase 1: approved additions P1-P7, `/api/health` limited to `{ok, version, uptime}`, `artworkId` and `media.artwork`. |
+| 2026-11-19 | Phase 2: clarification 8 (input units). No contract change. |

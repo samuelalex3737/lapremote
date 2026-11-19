@@ -13,7 +13,7 @@ import uvicorn
 from lapremote import __version__
 from lapremote.config import ConfigError, load_config
 from lapremote.protocol import MAX_MESSAGE_BYTES
-from lapremote.server import PORT_ENV
+from lapremote.server import INPUT_DRY_RUN_ENV, PORT_ENV
 
 # Listen on every interface so phones on the same Wi-Fi can connect. Every
 # message except pairing requires a device token.
@@ -24,6 +24,11 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="lapremote", description="LapRemote agent")
     parser.add_argument("--port", type=int, help="override the port from config.json")
     parser.add_argument("--dev", action="store_true", help="auto-reload on code changes")
+    parser.add_argument(
+        "--input-dry-run",
+        action="store_true",
+        help="accept input commands but never move the real mouse or type (demos and tests)",
+    )
     parser.add_argument("--version", action="version", version=f"lapremote {__version__}")
     args = parser.parse_args(argv)
     if args.port is not None and not 1024 <= args.port <= 65535:
@@ -50,6 +55,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     port: int = args.port if args.port is not None else config.port
     # The app factory runs in the (reloader) worker process, so pass the port on.
     os.environ[PORT_ENV] = str(port)
+    if args.input_dry_run:
+        os.environ[INPUT_DRY_RUN_ENV] = "1"
     package_dir = Path(__file__).resolve().parent
     uvicorn.run(
         "lapremote.server:create_app",

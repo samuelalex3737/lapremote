@@ -19,6 +19,7 @@ test('resumes a paired phone over the WebSocket and shows latency', async ({ pag
   const status = page.getByRole('status')
   await expect(status).toContainText('Connected to ')
   await expect(status).toHaveText(/^Connected to .+ · \d+ms$/)
+  await page.getByRole('button', { name: 'Devices' }).click()
   await expect(page.getByText("You're the owner of this laptop.")).toBeVisible()
   await expect(page.getByText(`${E2E_DEVICE_NAME} (this phone)`)).toBeVisible()
   await noHorizontalScroll(page)

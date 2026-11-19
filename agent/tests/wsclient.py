@@ -15,6 +15,7 @@ from starlette.testclient import WebSocketTestSession
 
 from lapremote.config import Config
 from lapremote.core import Agent
+from lapremote.input.service import InputDevices, detect_input_devices
 from lapremote.security.ratelimit import Limits
 from lapremote.server import create_app
 
@@ -27,7 +28,10 @@ def make_app(
     limits: Limits | None = None,
     auth_timeout: float = 5.0,
     static_dir: Path | None = None,
+    input_devices: InputDevices | None = None,
 ) -> FastAPI:
+    # Never inject real input from tests: default to the dry-run backend.
+    devices = input_devices or detect_input_devices("windows", None, dry_run=True)
     return create_app(
         Config(),
         home=home,
@@ -38,6 +42,7 @@ def make_app(
         console_log=False,
         limits=limits,
         auth_timeout=auth_timeout,
+        input_devices=devices,
     )
 
 

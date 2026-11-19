@@ -20,5 +20,10 @@ Development host so far: Windows 11 Home Single Language, build 26300, one 1920x
 | mDNS `_lapremote._tcp` + `lapremote.local` | 1 | Tested (browsed with zeroconf on this host) | Implemented-untested | Implemented-untested |
 | JSON-lines log, 5 x 1MB rotation | 1 | Tested | Implemented-untested | Implemented-untested |
 | Remote: pair / resume / reconnect / devices screen | 1 | Tested in Playwright: iPhone 15 (WebKit), Pixel 8 (Chromium). Real phone: pending Sam's check | same | same |
+| Mouse move / click / drag / scroll / zoom (pynput) | 2 | Tested (real cursor moved 41px and back; DPI per-monitor, 1920x1080 physical) | Implemented-untested (needs Accessibility, detected with AXIsProcessTrusted) | Implemented-untested on X11. Unsupported on Wayland (reported with fix) |
+| High-resolution scroll | 2 | Implemented (1/120 notch SendInput), not checked by hand yet | Quarter-notch pixel scroll, untested | Whole notches only (X11 limitation) |
+| Key combos and text (`key.press`, `key.text`) | 2 | Tested via dry run and unit tests; real typing not run in tests | Implemented-untested | Implemented-untested |
+| Gesture trackpad (all gestures) | 2 | Gesture engine unit-tested. Tap, drag and two-finger scroll proven end to end in Playwright (dry run). Real phone: pending Sam's check | same | same |
+| Three-finger shortcuts | 2 | Win+Tab, Win+D, Ctrl+(Shift+)Tab | Ctrl+Up, F11, Ctrl+(Shift+)Tab, untested | Super+S, Super+D (desktop dependent), untested |
 
 Rows are added as each phase lands.

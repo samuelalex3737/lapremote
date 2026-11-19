@@ -28,14 +28,18 @@ from lapremote.config import Config, data_dir, load_config
 from lapremote.connection import Connection
 from lapremote.core import Agent
 from lapremote.discovery import Advertiser
+from lapremote.input.service import InputDevices, detect_input_devices, register_input
 from lapremote.logging_setup import get_logger, log_event, setup_logging
 from lapremote.protocol import Ack
 from lapremote.router import MSG_INVALID
 from lapremote.security.pairing import CODE_TTL_SECONDS
 from lapremote.security.ratelimit import Limits
+from lapremote.system.dpi import enable_dpi_awareness
 from lapremote.system.network import detect_lan_ip
+from lapremote.system.platform_info import detect_display_server
 
 PORT_ENV = "LAPREMOTE_PORT"
+INPUT_DRY_RUN_ENV = "LAPREMOTE_INPUT_DRY_RUN"
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 AUTH_TIMEOUT_SECONDS = 5.0
 CLOSE_AUTH_TIMEOUT = 4001
@@ -207,11 +211,22 @@ def create_app(  # noqa: PLR0913 - explicit knobs keep tests free of monkeypatch
     console_log: bool = True,
     limits: Limits | None = None,
     auth_timeout: float = AUTH_TIMEOUT_SECONDS,
+    input_devices: InputDevices | None = None,
 ) -> FastAPI:
+    # Before anything touches the screen, so coordinates are physical pixels on Windows.
+    dpi_mode = enable_dpi_awareness()
     home = home or data_dir()
     config = config or load_config()
     setup_logging(home / "logs", console=console_log)
     agent = Agent(config, home, limits=limits)
+    if input_devices is None:
+        input_devices = detect_input_devices(
+            agent.os,
+            detect_display_server(agent.os),
+            dry_run=os.environ.get(INPUT_DRY_RUN_ENV) == "1",
+        )
+    register_input(agent, input_devices)
+    log_event(log, "input_ready", available=input_devices.permission.available, dpi=dpi_mode)
     opts = ServerOptions(
         port=port or int(os.environ.get(PORT_ENV) or config.port),
         lan_ip=lan_ip,

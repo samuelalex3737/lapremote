@@ -30,6 +30,12 @@ Run every check:
 uv run --project agent python scripts/check.py
 ```
 
+Run the agent without touching the real mouse or keyboard (actions are logged instead):
+
+```bash
+cd agent && uv run python -m lapremote --input-dry-run
+```
+
 Print a recon report of this machine:
 
 ```bash

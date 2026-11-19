@@ -1,12 +1,17 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { DevicesList } from '../features/devices/DevicesList.tsx'
 import { PairScreen } from '../features/pairing/PairScreen.tsx'
+import { Trackpad } from '../features/trackpad/Trackpad.tsx'
 import { client, takePairCode, useRemote } from './client.ts'
+import { Toaster } from './Toaster.tsx'
 
 const initialPairCode = takePairCode()
 
+type View = 'trackpad' | 'devices'
+
 export function App() {
   const { status, session, latencyMs } = useRemote()
+  const [view, setView] = useState<View>('trackpad')
 
   useEffect(() => {
     if (initialPairCode !== null) client.pair(initialPairCode)
@@ -23,32 +28,40 @@ export function App() {
     }
   }, [])
 
+  const connected = status.kind === 'connected' && session !== null
+
   return (
     <main
-      className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-8 px-4 text-center"
+      className="mx-auto flex h-dvh max-w-md flex-col gap-4 px-4"
       style={{
-        paddingTop: 'max(1.5rem, env(safe-area-inset-top))',
-        paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))',
+        paddingTop: 'max(1rem, env(safe-area-inset-top))',
+        paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
       }}
     >
+      <Toaster client={client} />
+
       {(status.kind === 'unpaired' || status.kind === 'pairing') && (
-        <PairScreen
-          error={status.kind === 'unpaired' ? status.error : null}
-          busy={status.kind === 'pairing'}
-          onPair={(code) => {
-            client.pair(code)
-          }}
-        />
+        <div className="flex flex-1 flex-col justify-center text-center">
+          <PairScreen
+            error={status.kind === 'unpaired' ? status.error : null}
+            busy={status.kind === 'pairing'}
+            onPair={(code) => {
+              client.pair(code)
+            }}
+          />
+        </div>
       )}
 
       {status.kind === 'connecting' && (
-        <p role="status" className="text-lg text-zinc-300">
-          Connecting to your laptop...
-        </p>
+        <div className="flex flex-1 items-center justify-center">
+          <p role="status" className="text-lg text-zinc-300">
+            Connecting to your laptop...
+          </p>
+        </div>
       )}
 
       {status.kind === 'offline' && (
-        <div role="status" className="flex flex-col gap-2">
+        <div role="status" className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
           <p className="text-lg font-medium">Can't reach your laptop. Is it on the same Wi-Fi?</p>
           <p className="text-sm text-zinc-400">
             Trying again in {Math.ceil(status.retryInMs / 1000)}s
@@ -56,32 +69,51 @@ export function App() {
         </div>
       )}
 
-      {status.kind === 'connected' && session !== null && (
-        <div className="flex flex-col gap-6">
-          <p
-            role="status"
-            className="mx-auto rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-sm font-medium text-emerald-200"
-          >
-            Connected to {session.hostName}
-            {latencyMs !== null && ` · ${String(latencyMs)}ms`}
-          </p>
-          <h1 className="text-3xl font-semibold tracking-tight">LapRemote</h1>
-          <p className="text-base text-zinc-300">
-            {session.role === 'owner'
-              ? "You're the owner of this laptop."
-              : "You're a guest. The owner can give you full control."}
-          </p>
-          {session.role === 'owner' && <DevicesList client={client} selfId={session.deviceId} />}
-          <button
-            type="button"
-            className="min-h-11 text-sm text-zinc-400 underline underline-offset-4"
-            onClick={() => {
-              client.forget()
-            }}
-          >
-            Forget this laptop on this phone
-          </button>
-        </div>
+      {connected && (
+        <>
+          <header className="flex items-center justify-between gap-3">
+            <p
+              role="status"
+              className="truncate rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-sm font-medium text-emerald-200"
+            >
+              Connected to {session.hostName}
+              {latencyMs !== null && ` · ${String(latencyMs)}ms`}
+            </p>
+            <button
+              type="button"
+              className="min-h-11 shrink-0 rounded-full border border-white/15 px-4 text-sm font-medium"
+              onClick={() => {
+                setView(view === 'trackpad' ? 'devices' : 'trackpad')
+              }}
+            >
+              {view === 'trackpad' ? 'Devices' : 'Trackpad'}
+            </button>
+          </header>
+
+          {view === 'trackpad' ? (
+            <Trackpad client={client} session={session} />
+          ) : (
+            <div className="flex flex-1 flex-col gap-6 overflow-y-auto">
+              <p className="text-base text-zinc-300">
+                {session.role === 'owner'
+                  ? "You're the owner of this laptop."
+                  : "You're a guest. The owner can give you full control."}
+              </p>
+              {session.role === 'owner' && (
+                <DevicesList client={client} selfId={session.deviceId} />
+              )}
+              <button
+                type="button"
+                className="min-h-11 self-start text-sm text-zinc-400 underline underline-offset-4"
+                onClick={() => {
+                  client.forget()
+                }}
+              >
+                Forget this laptop on this phone
+              </button>
+            </div>
+          )}
+        </>
       )}
     </main>
   )

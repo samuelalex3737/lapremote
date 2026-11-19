@@ -24,7 +24,8 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: `uv run --project ../agent python -m lapremote --port ${String(AGENT_PORT)}`,
+      // --input-dry-run: the tests never move the real mouse; actions are logged instead.
+      command: `uv run --project ../agent python -m lapremote --port ${String(AGENT_PORT)} --input-dry-run`,
       url: `http://127.0.0.1:${String(AGENT_PORT)}/api/health`,
       env: { LAPREMOTE_HOME: home },
       reuseExistingServer: false,

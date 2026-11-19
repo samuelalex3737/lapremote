@@ -91,6 +91,7 @@ class Agent:
             name: FeatureStatus(available=False, reason=NOT_YET) for name in FEATURE_NAMES
         }
         self.on_connect: list[ConnectHook] = []
+        self.on_disconnect: list[ConnectHook] = []
         self._background: set[asyncio.Task[None]] = set()
         self._register_core()
 
@@ -169,6 +170,11 @@ class Agent:
 
     async def disconnected(self, conn: Connection) -> None:
         self.hub.remove(conn)
+        for hook in self.on_disconnect:
+            try:
+                await hook(conn)
+            except Exception:
+                self.log.exception("disconnect_hook_failed")
         if conn.device is not None:
             self.devices.touch(conn.device.device_id)
             await self.broadcast_devices()

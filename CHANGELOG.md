@@ -4,6 +4,26 @@ All notable changes to LapRemote. Versions follow [Semantic Versioning](https://
 
 ## [Unreleased]
 
+### Phase 2 - Input engine and trackpad
+
+- Agent `input/`: relative moves with sub-pixel carry, clicks, press/release (drag), per-OS
+  high-resolution scroll, zoom (Ctrl/Cmd + =/-), allowlisted key combos and text (typed off the
+  event loop). Held buttons are released when a phone disconnects or is revoked.
+- Windows: per-monitor DPI awareness at startup, so coordinates are physical pixels.
+- macOS: missing Accessibility permission is detected and sent to the owner as a toast with exact
+  steps. Linux: Wayland is reported as unsupported for input, with the fix.
+- `--input-dry-run` flag: accept input but log it instead of moving the real mouse (used by e2e
+  tests and demos).
+- Web gesture engine (`lib/gestures/`): pure, unit-tested state machine for move with acceleration,
+  tap, tap-then-drag, long-press drag lock, two-finger tap, two-finger scroll with inertia, pinch
+  zoom (8%, re-baselined, 120ms debounce), three-finger swipes and the right-edge scroll strip.
+  Moves and scrolls are coalesced to one message per animation frame, with the remainder carried.
+- Trackpad screen: touch-action none, Safari gesture blocking, left/right buttons, gesture hints
+  until the first touch, and settings (speed, acceleration, scroll speed, natural scroll,
+  tap-to-click, three-finger mappings) saved on the phone. Haptics on Android, a silent no-op on
+  iOS.
+- Toasts for agent messages and failed requests.
+
 ### Phase 1 - Agent core, pairing and security
 
 - Agent listens on `0.0.0.0:7777`, serves the built Remote app (SPA fallback, cache headers) and the
