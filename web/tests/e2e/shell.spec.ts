@@ -46,11 +46,11 @@ test('the pairing screen passes the same checks', async ({ page }) => {
 
 test('swiping left and right changes tabs, but not on the trackpad', async ({ page, browserName }) => {
   test.skip(browserName !== 'chromium', 'touch swipes are driven through the Chromium DevTools protocol')
-  await openPaired(page, { tab: 'now' })
+  await openPaired(page, { tab: 'launch' })
   const cdp = await page.context().newCDPSession(page)
   const box = await page.locator('main').boundingBox()
   if (box === null) throw new Error('no main')
-  const y = box.y + box.height * 0.3
+  const y = box.y + box.height * 0.6
   const swipe = async (fromX: number, toX: number) => {
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: fromX, y }] })
     for (let i = 1; i <= 6; i++) {
@@ -60,18 +60,24 @@ test('swiping left and right changes tabs, but not on the trackpad', async ({ pa
       })
     }
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+    await page.waitForTimeout(400)
   }
+  const left = () => swipe(box.x + box.width * 0.8, box.x + box.width * 0.2)
+  const right = () => swipe(box.x + box.width * 0.2, box.x + box.width * 0.8)
   const nav = page.getByRole('navigation', { name: 'Main' })
-  await swipe(box.x + box.width * 0.8, box.x + box.width * 0.2)
-  await expect(nav.getByRole('button', { name: 'Trackpad' })).toHaveAttribute('aria-current', 'page')
+  const current = (name: string) => expect(nav.getByRole('button', { name })).toHaveAttribute('aria-current', 'page')
+
+  await left()
+  await current('More')
+  await right()
+  await current('Launch')
+  await right()
+  await current('Keys')
+  await right()
+  await current('Trackpad')
   // On the trackpad a swipe is a gesture for the laptop, not navigation.
-  await page.waitForTimeout(400)
-  await swipe(box.x + box.width * 0.2, box.x + box.width * 0.8)
-  await expect(nav.getByRole('button', { name: 'Trackpad' })).toHaveAttribute('aria-current', 'page')
-  await openTab(page, 'Keys')
-  await page.waitForTimeout(400)
-  await swipe(box.x + box.width * 0.2, box.x + box.width * 0.8)
-  await expect(nav.getByRole('button', { name: 'Trackpad' })).toHaveAttribute('aria-current', 'page')
+  await left()
+  await current('Trackpad')
 })
 
 test('first connection that fails shows the offline splash with a retry', async ({ page }) => {

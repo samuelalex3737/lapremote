@@ -13,6 +13,8 @@ dependencies = [
     "pycaw>=20260927 ; sys_platform == 'win32'",
     "pydantic>=2.14.3",
     "pynput>=1.8.2",
+    "pyobjc-framework-cocoa>=13.0 ; sys_platform == 'darwin'",
+    "pyobjc-framework-quartz>=13.0 ; sys_platform == 'darwin'",
     "pywin32>=312 ; sys_platform == 'win32'",
     "qrcode>=8.2",
     "uvicorn[standard]>=0.54.0",

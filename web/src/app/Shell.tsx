@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { useRef, type ReactNode } from 'react'
 import { KeysTab } from '../features/keyboard/KeysTab.tsx'
+import { Backdrop } from '../features/nowplaying/Backdrop.tsx'
 import { LaunchTab } from '../features/launcher/LaunchTab.tsx'
 import { MoreTab } from '../features/more/MoreTab.tsx'
 import { NowPlayingTab } from '../features/nowplaying/NowPlayingTab.tsx'
@@ -8,6 +9,7 @@ import { TrackpadTab } from '../features/trackpad/TrackpadTab.tsx'
 import { useConnection } from '../store/remote.ts'
 import { neighbourTab, useUi, type TabId } from '../store/ui.ts'
 import { StatusPill } from '../ui/primitives.tsx'
+import { ContextBanner } from './ContextBanner.tsx'
 import { TabBar } from './TabBar.tsx'
 
 const SWIPE_MIN_PX = 70
@@ -82,7 +84,8 @@ export function Shell() {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="relative isolate flex h-full flex-col">
+      <Backdrop visible={tab === 'now'} />
       <header className="flex items-center justify-center px-4 pt-safe">
         <div className="pt-3 pb-2">
           <ConnectionPill />
@@ -91,6 +94,7 @@ export function Shell() {
       <AnimatePresence>
         <OfflineBanner />
       </AnimatePresence>
+      <ContextBanner />
       <main
         className="relative min-h-0 flex-1 overflow-hidden"
         onPointerDown={onPointerDown}

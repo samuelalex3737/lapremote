@@ -2,7 +2,8 @@ import { LogOut } from 'lucide-react'
 import { useState } from 'react'
 import { client, useConnection } from '../../store/remote.ts'
 import { Button } from '../../ui/Button.tsx'
-import { Card } from '../../ui/primitives.tsx'
+import { useUi } from '../../store/ui.ts'
+import { Card, Switch } from '../../ui/primitives.tsx'
 import { TrackpadSettingsForm } from '../trackpad/TrackpadSettingsPanel.tsx'
 import { useTrackpadSettings } from '../trackpad/useTrackpadSettings.ts'
 
@@ -12,6 +13,8 @@ export function SettingsScreen() {
   const session = useConnection((s) => s.session)
   const [settings, setSettings] = useTrackpadSettings()
   const [confirmForget, setConfirmForget] = useState(false)
+  const autoSwitch = useUi((s) => s.autoSwitch)
+  const setAutoSwitch = useUi((s) => s.setAutoSwitch)
   if (session === null) return null
 
   return (
@@ -23,6 +26,15 @@ export function SettingsScreen() {
           {OS_NAMES[session.os]} · You're {session.role === 'owner' ? 'the owner' : 'a guest'}
           {session.features.secureContext ? ' · Secure connection' : ''}
         </p>
+      </Card>
+      <Card className="flex flex-col gap-2">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]">Now Playing</h2>
+        <Switch
+          label="Switch controls automatically"
+          description="Jump to movie, music or slide controls when the app in front changes"
+          checked={autoSwitch}
+          onChange={setAutoSwitch}
+        />
       </Card>
       <Card className="flex flex-col gap-2">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]">Trackpad</h2>

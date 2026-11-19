@@ -34,5 +34,9 @@ Development host so far: Windows 11 Home Single Language, build 26300, one 1920x
 | App shell: tab bar, swipe tabs, Splash, offline banner, toasts, sheets | 4 | Tested in Playwright (iPhone 15 WebKit, Pixel 8 Chromium); swipe tested on Chromium touch | same | same |
 | PWA manifest, icons, iOS splash screens and meta tags | 4 | Manifest, icons and meta checked in Playwright; Add to Home Screen on a real iPhone pending Sam | same | same |
 | Service worker (offline shell) | 4 | Built and served; browsers only register it on HTTPS or localhost, so on plain LAN http it is skipped (HTTPS comes in Phase 8) | same | same |
+| Context engine (foreground app, category, site, 500ms push on change) | 5 | Tested (real: Chrome reported as browser/generic through the agent; real foreground read in pytest) | Implemented-untested (NSWorkspace + Quartz window list; titles need Screen Recording permission) | Implemented-untested on X11 (xdotool). Unsupported on Wayland (reported) |
+| Smart seek foreground check | 5 | Tested (Windows) | Implemented-untested (now uses the macOS reader) | Implemented-untested (X11) |
+| Now Playing (artwork glow, colour theme, scrubber, swipe, chips) | 5 | Tested in Playwright with a scripted agent; real sessions shown in Phase 4 screenshots | same | same |
+| Context banner, movie / music / slides modes, auto-switch | 5 | Tested in Playwright with a scripted agent; real focus switching pending Sam | same | same |
 
 Rows are added as each phase lands.

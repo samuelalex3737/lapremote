@@ -19,6 +19,7 @@ from lapremote.input.service import InputDevices, detect_input_devices
 from lapremote.media.base import MediaBackend, NoSessionBackend
 from lapremote.security.ratelimit import Limits
 from lapremote.server import create_app
+from lapremote.system.context import ForegroundReader
 from lapremote.system.volume import VolumeBackend
 
 from .fakes import FakeVolume
@@ -35,6 +36,7 @@ def make_app(
     input_devices: InputDevices | None = None,
     media_backend: MediaBackend | None = None,
     volume_backend: VolumeBackend | None = None,
+    foreground_reader: ForegroundReader | None = None,
 ) -> FastAPI:
     # Never inject real input from tests: default to the dry-run backend.
     devices = input_devices or detect_input_devices("windows", None, dry_run=True)
@@ -52,6 +54,8 @@ def make_app(
         # Never touch the real media sessions or system volume from tests by default.
         media_backend=media_backend or NoSessionBackend(),
         volume_backend=volume_backend or FakeVolume(),
+        # Tests never read the real foreground window unless they pass a reader.
+        foreground_reader=foreground_reader,
     )
 
 

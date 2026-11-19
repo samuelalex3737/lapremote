@@ -38,7 +38,7 @@ from lapremote.protocol import Ack
 from lapremote.router import MSG_INVALID
 from lapremote.security.pairing import CODE_TTL_SECONDS
 from lapremote.security.ratelimit import Limits
-from lapremote.system.context import read_foreground
+from lapremote.system.context import ContextService, ForegroundReader, make_reader
 from lapremote.system.dpi import enable_dpi_awareness
 from lapremote.system.network import detect_lan_ip
 from lapremote.system.platform_info import detect_display_server
@@ -227,6 +227,7 @@ def create_app(  # noqa: PLR0913 - explicit knobs keep tests free of monkeypatch
     input_devices: InputDevices | None = None,
     media_backend: MediaBackend | None = None,
     volume_backend: VolumeBackend | None = None,
+    foreground_reader: ForegroundReader | Literal["auto"] | None = "auto",
 ) -> FastAPI:
     # Before anything touches the screen, so coordinates are physical pixels on Windows.
     dpi_mode = enable_dpi_awareness()
@@ -245,7 +246,9 @@ def create_app(  # noqa: PLR0913 - explicit knobs keep tests free of monkeypatch
     hint: str | None = None
     if media_backend is None:
         media_backend, hint = create_media_backend(agent.os)
-    MediaService(agent, media_backend, keys, read_foreground, hint).register()
+    reader = make_reader() if foreground_reader == "auto" else foreground_reader
+    MediaService(agent, media_backend, keys, reader or (lambda: None), hint).register()
+    ContextService(agent, reader).register()
     VolumeService(agent, volume_backend or create_volume_backend(agent.os), keys).register()
     log_event(log, "input_ready", available=input_devices.permission.available, dpi=dpi_mode)
     opts = ServerOptions(

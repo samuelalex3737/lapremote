@@ -3,6 +3,7 @@
  * state for React. Agent toasts and failed requests surface as toasts.
  */
 import { create } from 'zustand'
+import type { ContextInfo } from '../lib/adaptive.ts'
 import { localCredentialStore } from '../lib/credentials.ts'
 import { detectDevice, socketUrl } from '../lib/device.ts'
 import { MediaStore, type MediaSnapshot } from '../lib/mediaStore.ts'
@@ -30,6 +31,12 @@ client.subscribe(() => {
 export const useMedia = create<MediaSnapshot>(() => mediaStore.getSnapshot())
 mediaStore.subscribe(() => {
   useMedia.setState(mediaStore.getSnapshot(), true)
+})
+
+/** What is in front on the laptop (context.state), or null until the agent reports it. */
+export const useLaptopContext = create<{ context: ContextInfo | null }>(() => ({ context: null }))
+client.on('context.state', (context) => {
+  useLaptopContext.setState({ context })
 })
 
 client.on('toast', (p) => {

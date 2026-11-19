@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import type { Mode } from '../lib/adaptive.ts'
 
 export type TabId = 'now' | 'trackpad' | 'keys' | 'launch' | 'more'
 export type MoreScreen = 'menu' | 'scenes' | 'timer' | 'power' | 'ai' | 'devices' | 'settings'
@@ -9,8 +10,18 @@ export interface ToastItem {
   message: string
 }
 
+/** 'auto' follows the artwork-first player layout unless auto-switch picked a mode. */
+export type PlayerMode = 'auto' | Mode
+
 interface UiState {
   tab: TabId
+  mode: PlayerMode
+  /** Context key of the last banner the person dismissed. */
+  dismissedBanner: string | null
+  autoSwitch: boolean
+  setMode: (mode: PlayerMode) => void
+  dismissBanner: (key: string) => void
+  setAutoSwitch: (on: boolean) => void
   /** -1 or 1: which way the last tab change went, for the slide animation. */
   direction: number
   more: MoreScreen
@@ -24,6 +35,15 @@ interface UiState {
 export const TAB_ORDER: TabId[] = ['now', 'trackpad', 'keys', 'launch', 'more']
 
 const TAB_KEY = 'lapremote.tab'
+const AUTO_SWITCH_KEY = 'lapremote.autoSwitch'
+
+function initialAutoSwitch(): boolean {
+  try {
+    return localStorage.getItem(AUTO_SWITCH_KEY) === '1'
+  } catch {
+    return false
+  }
+}
 const REPEAT_WINDOW_MS = 2000
 
 function initialTab(): TabId {
@@ -40,6 +60,23 @@ let lastToast = { message: '', at: 0 }
 
 export const useUi = create<UiState>((set, get) => ({
   tab: initialTab(),
+  mode: 'auto',
+  dismissedBanner: null,
+  autoSwitch: initialAutoSwitch(),
+  setMode: (mode) => {
+    set({ mode })
+  },
+  dismissBanner: (key) => {
+    set({ dismissedBanner: key })
+  },
+  setAutoSwitch: (on) => {
+    try {
+      localStorage.setItem(AUTO_SWITCH_KEY, on ? '1' : '0')
+    } catch {
+      // Not remembered across visits.
+    }
+    set({ autoSwitch: on })
+  },
   direction: 1,
   more: 'menu',
   toast: null,

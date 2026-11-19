@@ -32,6 +32,7 @@ arguments. No argument ever contains text from the phone:
 | `media/macos.py` | `media-control` | `stream`, a fixed command name, or `seek <number formatted by the agent>` |
 | `media/linux.py` | `playerctl` | fixed flags, a player name that must be a currently listed MPRIS player, `position <number>` |
 | `system/volume.py` | `osascript` / `pactl` | fixed scripts or sink names with integers and booleans formatted by the agent |
+| `system/context.py` | `xdotool` (Linux X11) | `getactivewindow getwindowname` / `getwindowpid` only |
 
 Windows uses in-process APIs (WinRT, Core Audio, pywin32) and runs no subprocess.
 

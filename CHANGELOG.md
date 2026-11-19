@@ -4,6 +4,26 @@ All notable changes to LapRemote. Versions follow [Semantic Versioning](https://
 
 ## [Unreleased]
 
+### Phase 5 - Now Playing and adaptive context
+
+- Agent context engine: the foreground app on Windows (pywin32), macOS (NSWorkspace + Quartz)
+  and Linux X11 (xdotool), classified into browser, music, video, presentation, desktop or
+  other, with the site detected from browser titles (YouTube, Netflix, Prime Video, Spotify).
+  Polled every 500ms and pushed as `context.state` only on change.
+- Now Playing:
+  - large artwork with a soft glow, and a background gradient from the artwork colour (fast-average-color) cross-fading over 600ms
+  - an app-wide accent colour that always keeps 4.5:1 contrast
+  - app badge, live interpolated scrubber with drag-to-seek (with time preview) and keyboard seek
+  - -10s / play-pause / +10s, previous/next, swipe the artwork for next/previous
+  - session chips, volume, and "Nothing playing"
+- Adaptive UI: a banner such as "Netflix in focus - movie controls" with a one-tap switch and
+  dismiss. Auto-switch is a setting (off by default).
+- Movie mode: huge play/pause, -10s/+10s, fullscreen (f), skip intro (Netflix s, hidden
+  elsewhere) and subtitles (YouTube c, hidden elsewhere). Music mode: artwork first.
+  Presentation mode: big next/previous, blank screen (b) and an elapsed talk timer.
+- e2e tests drive the UI through a scripted stand-in agent (`page.routeWebSocket`), so they
+  don't depend on what is playing on the laptop.
+
 ### Phase 4 - Remote app shell and design system
 
 - Design tokens in Tailwind v4 `@theme`: layered dark backgrounds, glass surfaces, text tiers with
