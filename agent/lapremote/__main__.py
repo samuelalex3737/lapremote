@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from collections.abc import Sequence
 from pathlib import Path
@@ -11,10 +12,12 @@ import uvicorn
 
 from lapremote import __version__
 from lapremote.config import ConfigError, load_config
+from lapremote.protocol import MAX_MESSAGE_BYTES
+from lapremote.server import PORT_ENV
 
-# Phase 0 has no authentication yet, so the agent only listens on loopback.
-# Phase 1 switches to 0.0.0.0 together with pairing and device tokens.
-BIND_HOST = "127.0.0.1"
+# Listen on every interface so phones on the same Wi-Fi can connect. Every
+# message except pairing requires a device token.
+BIND_HOST = "0.0.0.0"  # noqa: S104
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -28,14 +31,25 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     return args
 
 
+def _utf8_stdio() -> None:
+    # The QR banner uses block characters. Piped output on Windows defaults to cp1252.
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8", errors="replace")
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
+    _utf8_stdio()
     try:
         config = load_config()
     except ConfigError as exc:
         print(f"LapRemote could not start: {exc}", file=sys.stderr)
         return 2
     port: int = args.port if args.port is not None else config.port
+    # The app factory runs in the (reloader) worker process, so pass the port on.
+    os.environ[PORT_ENV] = str(port)
     package_dir = Path(__file__).resolve().parent
     uvicorn.run(
         "lapremote.server:create_app",
@@ -44,6 +58,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         port=port,
         reload=args.dev,
         reload_dirs=[str(package_dir)] if args.dev else None,
+        reload_excludes=["static/*"] if args.dev else None,
+        access_log=False,  # access logs would record ?pair= codes
+        ws_max_size=MAX_MESSAGE_BYTES,
+        log_level="warning",
     )
     return 0
 

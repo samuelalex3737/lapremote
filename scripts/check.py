@@ -44,6 +44,7 @@ def build_steps(include_e2e: bool) -> list[Step]:
         Step("ruff check", [*py, "ruff", "check", ".", "../scripts"], AGENT_DIR),
         Step("ruff format", [*py, "ruff", "format", "--check", ".", "../scripts"], AGENT_DIR),
         Step("mypy --strict", [*py, "mypy"], AGENT_DIR),
+        Step("protocol schema", [*py, "lapremote.protocol", "--check"], AGENT_DIR),
         Step("pytest", [*py, "pytest"], AGENT_DIR),
         Step("eslint", [npm, "run", "lint"], WEB_DIR),
         Step("tsc --noEmit", [npm, "run", "typecheck"], WEB_DIR),

@@ -7,8 +7,11 @@ license = "MIT"
 dependencies = [
     "fastapi>=0.165.0",
     "mss>=10.2.0",
+    "psutil>=7.2.2",
     "pydantic>=2.14.3",
+    "qrcode>=8.2",
     "uvicorn[standard]>=0.54.0",
+    "zeroconf>=0.154.0",
 ]
 
 [project.scripts]
@@ -28,6 +31,8 @@ dev = [
     "pytest>=9.2.0",
     "pytest-asyncio>=1.5.0",
     "ruff>=0.17.5",
+    "types-psutil>=7.2.2.20261111",
+    "types-qrcode>=8.2.0.20260518",
 ]
 
 [tool.ruff]
@@ -42,8 +47,15 @@ select = [
 ]
 ignore = ["PLR2004", "TRY003"]
 
+[tool.ruff.lint.pylint]
+max-args = 8
+max-returns = 12
+
+[tool.ruff.lint.flake8-annotations]
+allow-star-arg-any = true
+
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101", "ANN", "PLR2004", "S108"]
+"tests/**" = ["S101", "ANN", "PLR2004", "S104", "S105", "S106", "S108"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -57,3 +69,11 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
 addopts = "-ra --strict-markers"
+
+[tool.uv]
+# Smart App Control blocks zeroconf's unsigned Cython extensions on Windows,
+# so it is built from source in its pure-Python mode instead.
+no-binary-package = ["zeroconf"]
+
+[tool.uv.extra-build-variables]
+zeroconf = { SKIP_CYTHON = "1" }

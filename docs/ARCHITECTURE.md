@@ -80,14 +80,25 @@ flowchart LR
 |---|---|
 | `agent/lapremote/` | Agent package (`python -m lapremote`) |
 | `agent/lapremote/config.py` | `~/.lapremote/config.json` load/save with validated defaults |
-| `agent/lapremote/server.py` | FastAPI app factory |
+| `agent/lapremote/server.py` | FastAPI app: `/ws`, static Remote app, `/api/health`, Origin check, auth timeout |
+| `agent/lapremote/protocol.py` | Every message model, roles, reply rules, schema export |
+| `agent/lapremote/router.py` | Envelope parsing, auth and role checks, validation, rate limits, dispatch, command log |
+| `agent/lapremote/core.py` | Agent state and core handlers (auth, ping, devices) |
+| `agent/lapremote/connection.py` | One phone connection and the hub of all connections |
+| `agent/lapremote/security/` | Pairing codes, device store (token hashes), rate limiters |
+| `agent/lapremote/discovery.py` | mDNS advertisement |
+| `agent/lapremote/banner.py` | Terminal QR banner |
+| `agent/lapremote/logging_setup.py` | JSON-lines log with rotation |
 | `agent/lapremote/system/platform_info.py` | OS detection and external tool checks |
+| `agent/lapremote/system/network.py` | LAN IP selection |
+| `shared/protocol.schema.json` | Normalised protocol schema both sides are tested against |
 | `agent/tests/` | pytest suite |
 | `web/src/app/` | App shell |
-| `web/src/lib/` | Pure logic shared by features (health check, later the WS client and protocol) |
+| `web/src/lib/` | Pure logic: `protocol.ts` (zod mirror), `ws.ts` (connection client), credentials, device naming |
+| `web/src/features/` | Feature screens (pairing, devices) |
 | `web/tests/unit/` | vitest |
 | `web/tests/e2e/` | Playwright mobile smoke tests (iPhone 15, Pixel 8) |
-| `scripts/` | `dev.py`, `check.py`, `recon.py` |
+| `scripts/` | `dev.py`, `check.py`, `recon.py`, `build_web.py` |
 | `docs/` | Architecture, protocol, platform matrix, testing |
 
 Modules listed in the build spec are added in the phase that implements them. Nothing is created

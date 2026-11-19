@@ -4,8 +4,7 @@ Turn your phone into a fast, good-looking control panel for your laptop: univers
 a gesture trackpad, live screen preview, context-aware controls and natural-language commands. It
 runs entirely on your local Wi-Fi. No cloud, no accounts, 100% free and open source.
 
-> **Status:** Phase 0 of 10 (scaffold). The agent starts and the phone app can find it. Pairing,
-> control and everything else land in the following phases. See [CHANGELOG.md](CHANGELOG.md).
+> **Status:** in active development, phase by phase. See [CHANGELOG.md](CHANGELOG.md) for what works today.
 
 ## Dev setup
 

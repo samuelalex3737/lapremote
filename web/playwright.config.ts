@@ -1,10 +1,12 @@
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
 import { defineConfig, devices } from '@playwright/test'
+import { e2eHome, seedHome } from './tests/e2e/seed.ts'
 
 // Ports used only by the e2e run, so a real agent on 7777 is never touched.
 const AGENT_PORT = 7787
 const WEB_PORT = 5183
+
+const home = e2eHome()
+seedHome(home)
 
 export default defineConfig({
   testDir: 'tests/e2e',
@@ -24,7 +26,7 @@ export default defineConfig({
     {
       command: `uv run --project ../agent python -m lapremote --port ${String(AGENT_PORT)}`,
       url: `http://127.0.0.1:${String(AGENT_PORT)}/api/health`,
-      env: { LAPREMOTE_HOME: join(tmpdir(), 'lapremote-e2e-home') },
+      env: { LAPREMOTE_HOME: home },
       reuseExistingServer: false,
       timeout: 120_000,
     },

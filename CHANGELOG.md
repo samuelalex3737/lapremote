@@ -4,6 +4,31 @@ All notable changes to LapRemote. Versions follow [Semantic Versioning](https://
 
 ## [Unreleased]
 
+### Phase 1 - Agent core, pairing and security
+
+- Agent listens on `0.0.0.0:7777`, serves the built Remote app (SPA fallback, cache headers) and the
+  `/ws` WebSocket.
+- Pairing: one-time 6-digit code (5 minutes, single use, auto-rotates) printed as a terminal QR code
+  for `http://<lan-ip>:7777/?pair=<code>`. LAN IP picked from the default route, skipping virtual
+  adapters.
+- Devices: 32-byte tokens returned once, only SHA-256 hashes stored in `devices.json`. First device
+  is the owner, later ones are guests. Owners can promote, demote and revoke (revoked sockets close
+  with 4003). The last owner can't be removed.
+- Router: full role table, pydantic validation, friendly `ack ok:false` on any bad input, the
+  socket is never closed for it. Auth required within 5 seconds (4001). `Origin` must match the host.
+- Rate limits: pairing 5/min/IP, 300 messages/s per connection, `key.text` 10/s.
+- `protocol.py` with every message (spec + approved additions), and a normalised schema export
+  in `shared/protocol.schema.json`.
+- Web: `protocol.ts` zod mirror with sync tests against PROTOCOL.md and the schema. WebSocket
+  client with pairing, resume, 0.5-5s backoff, offline queue and latency pings. Pairing screen
+  with friendly errors. Devices screen for owners.
+- mDNS: `_lapremote._tcp` and `lapremote.local`. zeroconf is built in its pure-Python mode
+  because Smart App Control blocks its compiled extension.
+- JSON-lines command log in `~/.lapremote/logs/agent.log` (5 x 1MB). Tokens, codes and typed text
+  are never logged. Access logs are off because they would record `?pair=` codes.
+- `GET /api/health` now returns only `{ok, version, uptime}`.
+- `scripts/build_web.py` builds the Remote app into `agent/lapremote/static/`.
+
 ### Phase 0 - Recon and scaffold
 
 - Agent package (`python -m lapremote`) on Python 3.12, managed by uv with a committed `uv.lock`.

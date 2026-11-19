@@ -1,0 +1,2136 @@
+{
+  "agentToClient": {
+    "ack": {
+      "payload": {
+        "object": {
+          "error": {
+            "required": false,
+            "schema": {
+              "nullable": {
+                "type": "string"
+              }
+            }
+          },
+          "id": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          "ok": {
+            "required": true,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "ai.plan": {
+      "payload": {
+        "object": {
+          "actions": {
+            "required": true,
+            "schema": {
+              "array": {
+                "object": {
+                  "payload": {
+                    "required": false,
+                    "schema": {
+                      "type": "record"
+                    }
+                  },
+                  "type": {
+                    "required": true,
+                    "schema": {
+                      "enum": [
+                        "brightness.set",
+                        "key.press",
+                        "key.text",
+                        "launch.open",
+                        "media.next",
+                        "media.pause",
+                        "media.play",
+                        "media.prev",
+                        "media.seek",
+                        "media.select",
+                        "media.toggle",
+                        "power.action",
+                        "scene.run",
+                        "timer.cancel",
+                        "timer.set",
+                        "volume.mute",
+                        "volume.set",
+                        "volume.step",
+                        "wait"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "needsConfirm": {
+            "required": true,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          "planId": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          "reply": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "ai.result": {
+      "payload": {
+        "object": {
+          "planId": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          "steps": {
+            "required": true,
+            "schema": {
+              "array": {
+                "object": {
+                  "error": {
+                    "required": false,
+                    "schema": {
+                      "nullable": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "ok": {
+                    "required": true,
+                    "schema": {
+                      "type": "boolean"
+                    }
+                  },
+                  "type": {
+                    "required": true,
+                    "schema": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "auth.fail": {
+      "payload": {
+        "object": {
+          "reason": {
+            "required": true,
+            "schema": {
+              "enum": [
+                "bad_token",
+                "expired_code",
+                "invalid_code",
+                "rate_limited"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "auth.ok": {
+      "payload": {
+        "object": {
+          "deviceId": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          "features": {
+            "required": true,
+            "schema": {
+              "object": {
+                "ai": {
+                  "required": true,
+                  "schema": {
+                    "object": {
+                      "available": {
+                        "required": true,
+                        "schema": {
+                          "type": "boolean"
+                        }
+                      },
+                      "reason": {
+                        "required": false,
+                        "schema": {
+                          "nullable": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "brightness": {
+                  "required": true,
+                  "schema": {
+                    "object": {
+                      "available": {
+                        "required": true,
+                        "schema": {
+                          "type": "boolean"
+                        }
+                      },
+                      "reason": {
+                        "required": false,
+                        "schema": {
+                          "nullable": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "context": {
+                  "required": true,
+                  "schema": {
+                    "object": {
+                      "available": {
+                        "required": true,
+                        "schema": {
+                          "type": "boolean"
+                        }
+                      },
+                      "reason": {
+                        "required": false,
+                        "schema": {
+                          "nullable": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "input": {
+                  "required": true,
+                  "schema": {
+                    "object": {
+                      "available": {
+                        "required": true,
+                        "schema": {
+                          "type": "boolean"
+                        }
+                      },
+                      "reason": {
+                        "required": false,
+                        "schema": {
+                          "nullable": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "launcher": {
+                  "required": true,
+                  "schema": {
+                    "object": {
+                      "available": {
+                        "required": true,
+                        "schema": {
+                          "type": "boolean"
+                        }
+                      },
+                      "reason": {
+                        "required": false,
+                        "schema": {
+                          "nullable": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "media": {
+                  "required": true,
+                  "schema": {
+                    "object": {
+                      "available": {
+                        "required": true,
+                        "schema": {
+                          "type": "boolean"
+                        }
+                      },
+                      "reason": {
+                        "required": false,
+                        "schema": {
+                          "nullable": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "power": {
+                  "required": true,
+                  "schema": {
+                    "object": {
+                      "available": {
+                        "required": true,
+                        "schema": {
+                          "type": "boolean"
+                        }
+                      },
+                      "reason": {
+                        "required": false,
+                        "schema": {
+                          "nullable": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "preview": {
+                  "required": true,
+                  "schema": {
+                    "object": {
+                      "available": {
+                        "required": true,
+                        "schema": {
+                          "type": "boolean"
+                        }
+                      },
+                      "reason": {
+                        "required": false,
+                        "schema": {
+                          "nullable": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "scenes": {
+                  "required": true,
+                  "schema": {
+                    "object": {
+                      "available": {
+                        "required": true,
+                        "schema": {
+                          "type": "boolean"
+                        }
+                      },
+                      "reason": {
+                        "required": false,
+                        "schema": {
+                          "nullable": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "secureContext": {
+                  "required": true,
+                  "schema": {
+                    "type": "boolean"
+                  }
+                },
+                "timer": {
+                  "required": true,
+                  "schema": {
+                    "object": {
+                      "available": {
+                        "required": true,
+                        "schema": {
+                          "type": "boolean"
+                        }
+                      },
+                      "reason": {
+                        "required": false,
+                        "schema": {
+                          "nullable": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "volume": {
+                  "required": true,
+                  "schema": {
+                    "object": {
+                      "available": {
+                        "required": true,
+                        "schema": {
+                          "type": "boolean"
+                        }
+                      },
+                      "reason": {
+                        "required": false,
+                        "schema": {
+                          "nullable": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "hostName": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          "os": {
+            "required": true,
+            "schema": {
+              "enum": [
+                "linux",
+                "macos",
+                "windows"
+              ]
+            }
+          },
+          "role": {
+            "required": true,
+            "schema": {
+              "enum": [
+                "guest",
+                "owner"
+              ]
+            }
+          },
+          "token": {
+            "required": false,
+            "schema": {
+              "nullable": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "brightness.state": {
+      "payload": {
+        "object": {
+          "level": {
+            "required": true,
+            "schema": {
+              "nullable": {
+                "type": "integer"
+              }
+            }
+          },
+          "supported": {
+            "required": true,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "context.state": {
+      "payload": {
+        "object": {
+          "app": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          "category": {
+            "required": true,
+            "schema": {
+              "enum": [
+                "browser",
+                "desktop",
+                "music",
+                "other",
+                "presentation",
+                "video"
+              ]
+            }
+          },
+          "processName": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          "site": {
+            "required": true,
+            "schema": {
+              "nullable": {
+                "enum": [
+                  "generic",
+                  "netflix",
+                  "prime",
+                  "spotify_web",
+                  "youtube"
+                ]
+              }
+            }
+          },
+          "ts": {
+            "required": true,
+            "schema": {
+              "type": "number"
+            }
+          },
+          "windowTitle": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "devices.state": {
+      "payload": {
+        "object": {
+          "devices": {
+            "required": true,
+            "schema": {
+              "array": {
+                "object": {
+                  "deviceId": {
+                    "required": true,
+                    "schema": {
+                      "type": "string"
+                    }
+                  },
+                  "lastSeenAt": {
+                    "required": true,
+                    "schema": {
+                      "nullable": {
+                        "type": "number"
+                      }
+                    }
+                  },
+                  "name": {
+                    "required": true,
+                    "schema": {
+                      "type": "string"
+                    }
+                  },
+                  "online": {
+                    "required": true,
+                    "schema": {
+                      "type": "boolean"
+                    }
+                  },
+                  "pairedAt": {
+                    "required": true,
+                    "schema": {
+                      "type": "number"
+                    }
+                  },
+                  "platform": {
+                    "required": true,
+                    "schema": {
+                      "type": "string"
+                    }
+                  },
+                  "role": {
+                    "required": true,
+                    "schema": {
+                      "enum": [
+                        "guest",
+                        "owner"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "media.artwork": {
+      "payload": {
+        "object": {
+          "artwork": {
+            "required": true,
+            "schema": {
+              "nullable": {
+                "type": "string"
+              }
+            }
+          },
+          "artworkId": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "media.state": {
+      "payload": {
+        "object": {
+          "currentId": {
+            "required": true,
+            "schema": {
+              "nullable": {
+                "type": "string"
+              }
+            }
+          },
+          "sessions": {
+            "required": true,
+            "schema": {
+              "array": {
+                "object": {
+                  "album": {
+                    "required": true,
+                    "schema": {
+                      "type": "string"
+                    }
+                  },
+                  "appId": {
+                    "required": true,
+                    "schema": {
+                      "type": "string"
+                    }
+                  },
+                  "appName": {
+                    "required": true,
+                    "schema": {
+                      "type": "string"
+                    }
+                  },
+                  "artist": {
+                    "required": true,
+                    "schema": {
+                      "type": "string"
+                    }
+                  },
+                  "artwork": {
+                    "required": true,
+                    "schema": {
+                      "nullable": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "artworkId": {
+                    "required": true,
+                    "schema": {
+                      "nullable": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "canNext": {
+                    "required": true,
+                    "schema": {
+                      "type": "boolean"
+                    }
+                  },
+                  "canPrev": {
+                    "required": true,
+                    "schema": {
+                      "type": "boolean"
+                    }
+                  },
+                  "canSeek": {
+                    "required": true,
+                    "schema": {
+                      "type": "boolean"
+                    }
+                  },
+                  "duration": {
+                    "required": true,
+                    "schema": {
+                      "nullable": {
+                        "type": "number"
+                      }
+                    }
+                  },
+                  "id": {
+                    "required": true,
+                    "schema": {
+                      "type": "string"
+                    }
+                  },
+                  "position": {
+                    "required": true,
+                    "schema": {
+                      "nullable": {
+                        "type": "number"
+                      }
+                    }
+                  },
+                  "rate": {
+                    "required": true,
+                    "schema": {
+                      "type": "number"
+                    }
+                  },
+                  "status": {
+                    "required": true,
+                    "schema": {
+                      "enum": [
+                        "paused",
+                        "playing",
+                        "stopped"
+                      ]
+                    }
+                  },
+                  "title": {
+                    "required": true,
+                    "schema": {
+                      "type": "string"
+                    }
+                  },
+                  "updatedAt": {
+                    "required": true,
+                    "schema": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "ts": {
+            "required": true,
+            "schema": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
+    "pong": {
+      "payload": {
+        "object": {
+          "t": {
+            "required": true,
+            "schema": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
+    "power.token": {
+      "payload": {
+        "object": {
+          "action": {
+            "required": true,
+            "schema": {
+              "enum": [
+                "lock",
+                "restart",
+                "shutdown",
+                "sleep"
+              ]
+            }
+          },
+          "confirmToken": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          "expiresAt": {
+            "required": true,
+            "schema": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
+    "preview.meta": {
+      "payload": {
+        "object": {
+          "height": {
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          "monitors": {
+            "required": true,
+            "schema": {
+              "array": {
+                "object": {
+                  "height": {
+                    "required": true,
+                    "schema": {
+                      "type": "integer"
+                    }
+                  },
+                  "index": {
+                    "required": true,
+                    "schema": {
+                      "type": "integer"
+                    }
+                  },
+                  "left": {
+                    "required": true,
+                    "schema": {
+                      "type": "integer"
+                    }
+                  },
+                  "primary": {
+                    "required": true,
+                    "schema": {
+                      "type": "boolean"
+                    }
+                  },
+                  "top": {
+                    "required": true,
+                    "schema": {
+                      "type": "integer"
+                    }
+                  },
+                  "width": {
+                    "required": true,
+                    "schema": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "width": {
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
+    "scenes.state": {
+      "payload": {
+        "object": {
+          "scenes": {
+            "required": true,
+            "schema": {
+              "array": {
+                "object": {
+                  "id": {
+                    "required": true,
+                    "schema": {
+                      "type": "string"
+                    }
+                  },
+                  "name": {
+                    "required": true,
+                    "schema": {
+                      "type": "string"
+                    }
+                  },
+                  "steps": {
+                    "required": true,
+                    "schema": {
+                      "array": {
+                        "union": [
+                          {
+                            "object": {
+                              "level": {
+                                "required": true,
+                                "schema": {
+                                  "type": "integer"
+                                }
+                              },
+                              "type": {
+                                "required": true,
+                                "schema": {
+                                  "enum": [
+                                    "brightness.set"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "object": {
+                              "level": {
+                                "required": true,
+                                "schema": {
+                                  "type": "integer"
+                                }
+                              },
+                              "type": {
+                                "required": true,
+                                "schema": {
+                                  "enum": [
+                                    "volume.set"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "object": {
+                              "ms": {
+                                "required": true,
+                                "schema": {
+                                  "type": "integer"
+                                }
+                              },
+                              "type": {
+                                "required": true,
+                                "schema": {
+                                  "enum": [
+                                    "wait"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "object": {
+                              "shortcutId": {
+                                "required": true,
+                                "schema": {
+                                  "type": "string"
+                                }
+                              },
+                              "type": {
+                                "required": true,
+                                "schema": {
+                                  "enum": [
+                                    "launch.open"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "object": {
+                              "type": {
+                                "required": true,
+                                "schema": {
+                                  "enum": [
+                                    "media.pause"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "object": {
+                              "type": {
+                                "required": true,
+                                "schema": {
+                                  "enum": [
+                                    "media.play"
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "shortcuts.state": {
+      "payload": {
+        "object": {
+          "shortcuts": {
+            "required": true,
+            "schema": {
+              "array": {
+                "object": {
+                  "app": {
+                    "required": false,
+                    "schema": {
+                      "nullable": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "icon": {
+                    "required": false,
+                    "schema": {
+                      "nullable": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "id": {
+                    "required": true,
+                    "schema": {
+                      "type": "string"
+                    }
+                  },
+                  "kind": {
+                    "required": true,
+                    "schema": {
+                      "enum": [
+                        "app",
+                        "url"
+                      ]
+                    }
+                  },
+                  "name": {
+                    "required": true,
+                    "schema": {
+                      "type": "string"
+                    }
+                  },
+                  "url": {
+                    "required": false,
+                    "schema": {
+                      "nullable": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "timer.state": {
+      "payload": {
+        "object": {
+          "active": {
+            "required": true,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          "endsAt": {
+            "required": true,
+            "schema": {
+              "nullable": {
+                "type": "number"
+              }
+            }
+          },
+          "mode": {
+            "required": true,
+            "schema": {
+              "nullable": {
+                "enum": [
+                  "end_of_media",
+                  "minutes"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": true,
+            "schema": {
+              "nullable": {
+                "enum": [
+                  "pause",
+                  "pause_lock",
+                  "pause_sleep"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "toast": {
+      "payload": {
+        "object": {
+          "level": {
+            "required": true,
+            "schema": {
+              "enum": [
+                "error",
+                "info",
+                "success",
+                "warn"
+              ]
+            }
+          },
+          "message": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "volume.state": {
+      "payload": {
+        "object": {
+          "level": {
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          "muted": {
+            "required": true,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  },
+  "clientToAgent": {
+    "ai.command": {
+      "payload": {
+        "object": {
+          "text": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "reply": "reply",
+      "role": "owner"
+    },
+    "ai.confirm": {
+      "payload": {
+        "object": {
+          "approve": {
+            "required": true,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          "planId": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "owner"
+    },
+    "auth.pair": {
+      "payload": {
+        "object": {
+          "code": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          "deviceName": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          "platform": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "reply": "reply",
+      "role": "none"
+    },
+    "auth.resume": {
+      "payload": {
+        "object": {
+          "deviceId": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          "token": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "reply": "reply",
+      "role": "none"
+    },
+    "brightness.set": {
+      "payload": {
+        "object": {
+          "level": {
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "owner"
+    },
+    "devices.list": {
+      "payload": {
+        "object": {}
+      },
+      "reply": "reply",
+      "role": "owner"
+    },
+    "devices.revoke": {
+      "payload": {
+        "object": {
+          "deviceId": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "owner"
+    },
+    "devices.role": {
+      "payload": {
+        "object": {
+          "deviceId": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          "role": {
+            "required": true,
+            "schema": {
+              "enum": [
+                "guest",
+                "owner"
+              ]
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "owner"
+    },
+    "input.absclick": {
+      "payload": {
+        "object": {
+          "button": {
+            "required": true,
+            "schema": {
+              "enum": [
+                "left",
+                "middle",
+                "right"
+              ]
+            }
+          },
+          "monitor": {
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          "x": {
+            "required": true,
+            "schema": {
+              "type": "number"
+            }
+          },
+          "y": {
+            "required": true,
+            "schema": {
+              "type": "number"
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "owner"
+    },
+    "input.click": {
+      "payload": {
+        "object": {
+          "button": {
+            "required": true,
+            "schema": {
+              "enum": [
+                "left",
+                "middle",
+                "right"
+              ]
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "owner"
+    },
+    "input.down": {
+      "payload": {
+        "object": {
+          "button": {
+            "required": true,
+            "schema": {
+              "enum": [
+                "left",
+                "middle",
+                "right"
+              ]
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "owner"
+    },
+    "input.move": {
+      "payload": {
+        "object": {
+          "dx": {
+            "required": true,
+            "schema": {
+              "type": "number"
+            }
+          },
+          "dy": {
+            "required": true,
+            "schema": {
+              "type": "number"
+            }
+          }
+        }
+      },
+      "reply": "none",
+      "role": "guest"
+    },
+    "input.scroll": {
+      "payload": {
+        "object": {
+          "dx": {
+            "required": true,
+            "schema": {
+              "type": "number"
+            }
+          },
+          "dy": {
+            "required": true,
+            "schema": {
+              "type": "number"
+            }
+          }
+        }
+      },
+      "reply": "none",
+      "role": "owner"
+    },
+    "input.up": {
+      "payload": {
+        "object": {
+          "button": {
+            "required": true,
+            "schema": {
+              "enum": [
+                "left",
+                "middle",
+                "right"
+              ]
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "owner"
+    },
+    "input.zoom": {
+      "payload": {
+        "object": {
+          "dir": {
+            "required": true,
+            "schema": {
+              "enum": [
+                "in",
+                "out"
+              ]
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "owner"
+    },
+    "key.press": {
+      "payload": {
+        "object": {
+          "key": {
+            "required": true,
+            "schema": {
+              "enum": [
+                "'",
+                ",",
+                "-",
+                ".",
+                "/",
+                "0",
+                "1",
+                "2",
+                "3",
+                "4",
+                "5",
+                "6",
+                "7",
+                "8",
+                "9",
+                ";",
+                "=",
+                "[",
+                "\\",
+                "]",
+                "`",
+                "a",
+                "b",
+                "backspace",
+                "c",
+                "capslock",
+                "d",
+                "delete",
+                "down",
+                "e",
+                "end",
+                "enter",
+                "esc",
+                "f",
+                "f1",
+                "f10",
+                "f11",
+                "f12",
+                "f13",
+                "f14",
+                "f15",
+                "f16",
+                "f17",
+                "f18",
+                "f19",
+                "f2",
+                "f20",
+                "f21",
+                "f22",
+                "f23",
+                "f24",
+                "f3",
+                "f4",
+                "f5",
+                "f6",
+                "f7",
+                "f8",
+                "f9",
+                "g",
+                "h",
+                "home",
+                "i",
+                "insert",
+                "j",
+                "k",
+                "l",
+                "left",
+                "m",
+                "media_next",
+                "media_play_pause",
+                "media_prev",
+                "menu",
+                "n",
+                "o",
+                "p",
+                "pagedown",
+                "pageup",
+                "printscreen",
+                "q",
+                "r",
+                "right",
+                "s",
+                "space",
+                "t",
+                "tab",
+                "u",
+                "up",
+                "v",
+                "volume_down",
+                "volume_mute",
+                "volume_up",
+                "w",
+                "x",
+                "y",
+                "z"
+              ]
+            }
+          },
+          "modifiers": {
+            "required": false,
+            "schema": {
+              "array": {
+                "enum": [
+                  "alt",
+                  "ctrl",
+                  "meta",
+                  "shift"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "owner"
+    },
+    "key.text": {
+      "payload": {
+        "object": {
+          "text": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "owner"
+    },
+    "launch.open": {
+      "payload": {
+        "object": {
+          "shortcutId": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "owner"
+    },
+    "media.artwork": {
+      "payload": {
+        "object": {
+          "artworkId": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "reply": "reply",
+      "role": "guest"
+    },
+    "media.next": {
+      "payload": {
+        "object": {
+          "sessionId": {
+            "required": false,
+            "schema": {
+              "nullable": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "guest"
+    },
+    "media.pause": {
+      "payload": {
+        "object": {
+          "sessionId": {
+            "required": false,
+            "schema": {
+              "nullable": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "guest"
+    },
+    "media.play": {
+      "payload": {
+        "object": {
+          "sessionId": {
+            "required": false,
+            "schema": {
+              "nullable": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "guest"
+    },
+    "media.prev": {
+      "payload": {
+        "object": {
+          "sessionId": {
+            "required": false,
+            "schema": {
+              "nullable": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "guest"
+    },
+    "media.seek": {
+      "payload": {
+        "object": {
+          "by": {
+            "required": false,
+            "schema": {
+              "nullable": {
+                "type": "number"
+              }
+            }
+          },
+          "sessionId": {
+            "required": false,
+            "schema": {
+              "nullable": {
+                "type": "string"
+              }
+            }
+          },
+          "to": {
+            "required": false,
+            "schema": {
+              "nullable": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "guest"
+    },
+    "media.select": {
+      "payload": {
+        "object": {
+          "sessionId": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "guest"
+    },
+    "media.toggle": {
+      "payload": {
+        "object": {
+          "sessionId": {
+            "required": false,
+            "schema": {
+              "nullable": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "guest"
+    },
+    "ping": {
+      "payload": {
+        "object": {
+          "t": {
+            "required": true,
+            "schema": {
+              "type": "number"
+            }
+          }
+        }
+      },
+      "reply": "reply",
+      "role": "authed"
+    },
+    "power.action": {
+      "payload": {
+        "object": {
+          "action": {
+            "required": true,
+            "schema": {
+              "enum": [
+                "lock",
+                "restart",
+                "shutdown",
+                "sleep"
+              ]
+            }
+          },
+          "confirmToken": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "owner"
+    },
+    "power.prepare": {
+      "payload": {
+        "object": {
+          "action": {
+            "required": true,
+            "schema": {
+              "enum": [
+                "lock",
+                "restart",
+                "shutdown",
+                "sleep"
+              ]
+            }
+          }
+        }
+      },
+      "reply": "reply",
+      "role": "owner"
+    },
+    "preview.ack": {
+      "payload": {
+        "object": {
+          "frame": {
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "reply": "none",
+      "role": "owner"
+    },
+    "preview.start": {
+      "payload": {
+        "object": {
+          "fps": {
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          "monitor": {
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          "width": {
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "owner"
+    },
+    "preview.stop": {
+      "payload": {
+        "object": {}
+      },
+      "reply": "ack",
+      "role": "owner"
+    },
+    "scene.run": {
+      "payload": {
+        "object": {
+          "sceneId": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "owner"
+    },
+    "scenes.delete": {
+      "payload": {
+        "object": {
+          "sceneId": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "owner"
+    },
+    "scenes.save": {
+      "payload": {
+        "object": {
+          "scene": {
+            "required": true,
+            "schema": {
+              "object": {
+                "id": {
+                  "required": true,
+                  "schema": {
+                    "type": "string"
+                  }
+                },
+                "name": {
+                  "required": true,
+                  "schema": {
+                    "type": "string"
+                  }
+                },
+                "steps": {
+                  "required": true,
+                  "schema": {
+                    "array": {
+                      "union": [
+                        {
+                          "object": {
+                            "level": {
+                              "required": true,
+                              "schema": {
+                                "type": "integer"
+                              }
+                            },
+                            "type": {
+                              "required": true,
+                              "schema": {
+                                "enum": [
+                                  "brightness.set"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "object": {
+                            "level": {
+                              "required": true,
+                              "schema": {
+                                "type": "integer"
+                              }
+                            },
+                            "type": {
+                              "required": true,
+                              "schema": {
+                                "enum": [
+                                  "volume.set"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "object": {
+                            "ms": {
+                              "required": true,
+                              "schema": {
+                                "type": "integer"
+                              }
+                            },
+                            "type": {
+                              "required": true,
+                              "schema": {
+                                "enum": [
+                                  "wait"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "object": {
+                            "shortcutId": {
+                              "required": true,
+                              "schema": {
+                                "type": "string"
+                              }
+                            },
+                            "type": {
+                              "required": true,
+                              "schema": {
+                                "enum": [
+                                  "launch.open"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "object": {
+                            "type": {
+                              "required": true,
+                              "schema": {
+                                "enum": [
+                                  "media.pause"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "object": {
+                            "type": {
+                              "required": true,
+                              "schema": {
+                                "enum": [
+                                  "media.play"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "owner"
+    },
+    "shortcuts.delete": {
+      "payload": {
+        "object": {
+          "shortcutId": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "owner"
+    },
+    "shortcuts.reorder": {
+      "payload": {
+        "object": {
+          "ids": {
+            "required": true,
+            "schema": {
+              "array": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "owner"
+    },
+    "shortcuts.save": {
+      "payload": {
+        "object": {
+          "shortcut": {
+            "required": true,
+            "schema": {
+              "object": {
+                "app": {
+                  "required": false,
+                  "schema": {
+                    "nullable": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "icon": {
+                  "required": false,
+                  "schema": {
+                    "nullable": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "id": {
+                  "required": true,
+                  "schema": {
+                    "type": "string"
+                  }
+                },
+                "kind": {
+                  "required": true,
+                  "schema": {
+                    "enum": [
+                      "app",
+                      "url"
+                    ]
+                  }
+                },
+                "name": {
+                  "required": true,
+                  "schema": {
+                    "type": "string"
+                  }
+                },
+                "url": {
+                  "required": false,
+                  "schema": {
+                    "nullable": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "owner"
+    },
+    "timer.cancel": {
+      "payload": {
+        "object": {}
+      },
+      "reply": "ack",
+      "role": "owner"
+    },
+    "timer.set": {
+      "payload": {
+        "object": {
+          "minutes": {
+            "required": false,
+            "schema": {
+              "nullable": {
+                "type": "number"
+              }
+            }
+          },
+          "mode": {
+            "required": true,
+            "schema": {
+              "enum": [
+                "end_of_media",
+                "minutes"
+              ]
+            }
+          },
+          "then": {
+            "required": true,
+            "schema": {
+              "enum": [
+                "pause",
+                "pause_lock",
+                "pause_sleep"
+              ]
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "owner"
+    },
+    "volume.mute": {
+      "payload": {
+        "object": {
+          "muted": {
+            "required": true,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "guest"
+    },
+    "volume.set": {
+      "payload": {
+        "object": {
+          "level": {
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "guest"
+    },
+    "volume.step": {
+      "payload": {
+        "object": {
+          "delta": {
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "guest"
+    }
+  },
+  "version": 1
+}

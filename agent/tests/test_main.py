@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any
 
@@ -8,6 +9,7 @@ import uvicorn
 
 from lapremote import __main__ as entry
 from lapremote.config import Config, config_path, save_config
+from lapremote.server import PORT_ENV
 
 
 class RunRecorder:
@@ -22,6 +24,7 @@ class RunRecorder:
 def recorder(monkeypatch: pytest.MonkeyPatch) -> RunRecorder:
     rec = RunRecorder()
     monkeypatch.setattr(uvicorn, "run", rec)
+    monkeypatch.delenv(PORT_ENV, raising=False)
     return rec
 
 
@@ -31,15 +34,18 @@ def test_uses_port_from_config(recorder: RunRecorder) -> None:
     app, kwargs = recorder.calls[0]
     assert app == "lapremote.server:create_app"
     assert kwargs["factory"] is True
-    assert kwargs["host"] == "127.0.0.1"
+    assert kwargs["host"] == "0.0.0.0"
     assert kwargs["port"] == 8111
     assert kwargs["reload"] is False
     assert kwargs["reload_dirs"] is None
+    assert kwargs["access_log"] is False
+    assert os.environ[PORT_ENV] == "8111"
 
 
 def test_port_flag_overrides_config(recorder: RunRecorder) -> None:
     assert entry.main(["--port", "7790"]) == 0
     assert recorder.calls[0][1]["port"] == 7790
+    assert os.environ[PORT_ENV] == "7790"
 
 
 def test_dev_flag_enables_reload_on_package_dir(recorder: RunRecorder) -> None:
