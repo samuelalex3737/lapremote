@@ -31,5 +31,8 @@ Development host so far: Windows 11 Home Single Language, build 26300, one 1920x
 | Smart seek with site keys (YouTube j/l, Netflix/Prime arrows, generic arrows) | 3 | Decision table unit-tested; foreground check uses pywin32. Real sites pending Sam | Unsupported until Phase 5 adds macOS foreground detection (refuses safely) | Unsupported until Phase 5 adds X11 foreground detection (refuses safely) |
 | Media keys fallback | 3 | Unit-tested through the router | Implemented-untested | Implemented-untested |
 | Volume get/set/step/mute + 500ms push | 3 | Tested (pycaw read 100% muted through the agent; set only in unit tests to avoid changing Sam's volume) | Implemented-untested (osascript) | Implemented-untested (pactl) |
+| App shell: tab bar, swipe tabs, Splash, offline banner, toasts, sheets | 4 | Tested in Playwright (iPhone 15 WebKit, Pixel 8 Chromium); swipe tested on Chromium touch | same | same |
+| PWA manifest, icons, iOS splash screens and meta tags | 4 | Manifest, icons and meta checked in Playwright; Add to Home Screen on a real iPhone pending Sam | same | same |
+| Service worker (offline shell) | 4 | Built and served; browsers only register it on HTTPS or localhost, so on plain LAN http it is skipped (HTTPS comes in Phase 8) | same | same |
 
 Rows are added as each phase lands.

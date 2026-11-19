@@ -1,5 +1,7 @@
 import { useState, type SyntheticEvent } from 'react'
 import type { PairError } from '../../lib/ws.ts'
+import { Button } from '../../ui/Button.tsx'
+import { Logo } from '../../ui/Logo.tsx'
 
 const ERRORS: Record<PairError, string> = {
   invalid_code: "That code didn't work. Check the code on your laptop and try again.",
@@ -25,15 +27,16 @@ export function PairScreen({ error, busy, onPair }: Props) {
   }
 
   return (
-    <form onSubmit={submit} className="flex w-full flex-col gap-6" noValidate>
-      <div className="flex flex-col gap-2">
+    <form onSubmit={submit} className="flex w-full flex-col gap-6 text-center" noValidate>
+      <div className="flex flex-col items-center gap-4">
+        <Logo size={72} />
         <h1 className="text-3xl font-semibold tracking-tight">Pair with your laptop</h1>
-        <p className="text-base text-zinc-300">
+        <p className="text-base text-[var(--color-text-secondary)]">
           Scan the QR code shown on your laptop, or type the 6-digit code.
         </p>
       </div>
       <label className="flex flex-col gap-2 text-left">
-        <span className="text-sm font-medium text-zinc-300">Pairing code</span>
+        <span className="text-sm font-medium text-[var(--color-text-secondary)]">Pairing code</span>
         <input
           value={code}
           onChange={(e) => {
@@ -45,22 +48,18 @@ export function PairScreen({ error, busy, onPair }: Props) {
           maxLength={6}
           aria-invalid={error !== null}
           aria-describedby={error !== null ? 'pair-error' : undefined}
-          className="min-h-14 rounded-2xl border border-white/10 bg-white/5 px-4 text-center text-3xl font-semibold tracking-[0.4em] tabular-nums outline-none focus:border-white/40"
+          className="min-h-16 rounded-[var(--radius-control)] bg-[var(--color-surface)] px-4 text-center text-3xl font-semibold tracking-[0.4em] tabular-nums ring-1 ring-inset ring-[var(--color-line)] outline-none placeholder:text-[var(--color-text-tertiary)] focus:ring-2 focus:ring-[var(--color-accent)]"
           placeholder="000000"
         />
       </label>
       {error !== null && (
-        <p id="pair-error" role="alert" className="text-base text-rose-300">
+        <p id="pair-error" role="alert" className="text-base text-[var(--color-danger)]">
           {ERRORS[error]}
         </p>
       )}
-      <button
-        type="submit"
-        disabled={!ready}
-        className="min-h-12 rounded-full bg-zinc-100 px-6 text-base font-semibold text-zinc-900 transition active:scale-95 disabled:opacity-40"
-      >
+      <Button type="submit" variant="primary" size="lg" disabled={!ready}>
         {busy ? 'Pairing...' : 'Pair'}
-      </button>
+      </Button>
     </form>
   )
 }

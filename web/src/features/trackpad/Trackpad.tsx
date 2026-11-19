@@ -1,13 +1,16 @@
+import { Settings2 } from 'lucide-react'
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { TrackpadController, type PointerSample } from '../../lib/gestures/controller.ts'
 import type { SenderOptions } from '../../lib/gestures/sender.ts'
-import { loadSettings, saveSettings, type TrackpadSettings } from '../../lib/gestures/settings.ts'
+import type { TrackpadSettings } from '../../lib/gestures/settings.ts'
 import type { MouseButton } from '../../lib/gestures/trackpad.ts'
 import { haptic } from '../../lib/haptics.ts'
-import type { RemoteClient, Session } from '../../lib/ws.ts'
 import { hintsSeen, markHintsSeen } from '../../lib/hints.ts'
+import type { RemoteClient, Session } from '../../lib/ws.ts'
+import { IconButton } from '../../ui/Button.tsx'
 import { GestureHints } from './GestureHints.tsx'
 import { TrackpadSettingsPanel } from './TrackpadSettingsPanel.tsx'
+import { useTrackpadSettings } from './useTrackpadSettings.ts'
 
 interface Props {
   client: RemoteClient
@@ -42,27 +45,19 @@ function samples(e: ReactPointerEvent<HTMLDivElement>): PointerSample[] {
 
 function sample(e: ReactPointerEvent<HTMLDivElement>): PointerSample {
   const rect = e.currentTarget.getBoundingClientRect()
-  return {
-    pointerId: e.pointerId,
-    x: e.clientX - rect.left,
-    y: e.clientY - rect.top,
-    t: performance.now(),
-  }
+  return { pointerId: e.pointerId, x: e.clientX - rect.left, y: e.clientY - rect.top, t: performance.now() }
 }
 
 export function Trackpad({ client, session }: Props) {
-  const [settings, setSettings] = useState<TrackpadSettings>(loadSettings)
+  const [settings, setSettings] = useTrackpadSettings()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [showHints, setShowHints] = useState(() => !hintsSeen())
-  const [controller] = useState(
-    () => new TrackpadController(settings, senderOptions(client, session, settings)),
-  )
+  const [controller] = useState(() => new TrackpadController(settings, senderOptions(client, session, settings)))
   const surfaceRef = useRef<HTMLDivElement>(null)
   const canClick = session.role === 'owner'
 
   useEffect(() => {
     controller.configure(settings, senderOptions(client, session, settings))
-    saveSettings(settings)
   }, [controller, client, session, settings])
 
   useEffect(() => {
@@ -109,28 +104,17 @@ export function Trackpad({ client, session }: Props) {
     },
   })
 
-  if (!session.features.input.available) {
-    return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-3xl border border-white/10 bg-white/5 p-6 text-center">
-        <p className="text-lg font-medium">The trackpad isn't available on this laptop</p>
-        <p className="text-sm text-zinc-300">
-          {session.features.input.reason ?? 'Mouse control could not start.'}
-        </p>
-      </div>
-    )
-  }
-
   const buttonClass =
-    'min-h-14 flex-1 touch-none select-none rounded-2xl border border-white/10 bg-white/[0.06] text-sm font-medium text-zinc-200 active:bg-white/15'
+    'min-h-14 flex-1 touch-none select-none rounded-[var(--radius-control)] bg-[var(--color-surface-strong)] text-sm font-medium ring-1 ring-inset ring-[var(--color-line)] active:bg-[var(--color-line-strong)] landscape:min-h-0'
 
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col gap-3">
+    <div className="relative flex min-h-0 flex-1 flex-col gap-3 landscape:flex-row">
       <div
         ref={surfaceRef}
         data-testid="trackpad-surface"
         aria-label="Trackpad"
         role="application"
-        className="relative min-h-0 flex-1 touch-none select-none overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] [-webkit-touch-callout:none]"
+        className="relative min-h-0 flex-1 touch-none select-none overflow-hidden rounded-[var(--radius-card)] bg-[var(--color-surface)] ring-1 ring-inset ring-[var(--color-line)] [-webkit-touch-callout:none]"
         onPointerDown={(e) => {
           e.preventDefault()
           e.currentTarget.setPointerCapture(e.pointerId)
@@ -155,18 +139,18 @@ export function Trackpad({ client, session }: Props) {
       >
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-y-6 right-0 w-[12%] border-l border-dashed border-white/10"
+          className="pointer-events-none absolute inset-y-8 right-0 w-[12%] border-l border-dashed border-[var(--color-line)]"
         />
         {showHints && <GestureHints />}
       </div>
 
       {!canClick && (
-        <p className="text-center text-sm text-zinc-400">
+        <p className="text-center text-sm text-[var(--color-text-secondary)]">
           Guests can move the pointer. Ask the owner for full control.
         </p>
       )}
 
-      <div className="flex gap-3">
+      <div className="flex gap-3 landscape:w-28 landscape:flex-col">
         {canClick && (
           <>
             <button type="button" className={buttonClass} {...buttonHandlers('left')}>
@@ -177,27 +161,26 @@ export function Trackpad({ client, session }: Props) {
             </button>
           </>
         )}
-        <button
-          type="button"
-          aria-label="Trackpad settings"
-          className="min-h-14 min-w-14 rounded-2xl border border-white/10 bg-white/[0.06] px-4 text-sm font-medium text-zinc-200 active:bg-white/15"
+        <IconButton
+          label="Trackpad settings"
+          size="lg"
+          className="landscape:self-center"
           onClick={() => {
             setSettingsOpen(true)
           }}
         >
-          Settings
-        </button>
+          <Settings2 className="h-6 w-6" />
+        </IconButton>
       </div>
 
-      {settingsOpen && (
-        <TrackpadSettingsPanel
-          settings={settings}
-          onChange={setSettings}
-          onClose={() => {
-            setSettingsOpen(false)
-          }}
-        />
-      )}
+      <TrackpadSettingsPanel
+        open={settingsOpen}
+        settings={settings}
+        onChange={setSettings}
+        onClose={() => {
+          setSettingsOpen(false)
+        }}
+      />
     </div>
   )
 }

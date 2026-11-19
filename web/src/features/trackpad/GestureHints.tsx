@@ -12,10 +12,10 @@ const HINTS: [string, string][] = [
 export function GestureHints() {
   return (
     <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6">
-      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm text-zinc-400">
+      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm text-[var(--color-text-secondary)]">
         {HINTS.map(([name, how]) => (
           <div key={name} className="contents">
-            <dt className="font-medium text-zinc-300">{name}</dt>
+            <dt className="font-medium text-[var(--color-text)]">{name}</dt>
             <dd>{how}</dd>
           </div>
         ))}

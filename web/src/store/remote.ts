@@ -1,12 +1,16 @@
-import { useSyncExternalStore } from 'react'
+/**
+ * The page's single connection to the agent plus Zustand stores that mirror its
+ * state for React. Agent toasts and failed requests surface as toasts.
+ */
+import { create } from 'zustand'
 import { localCredentialStore } from '../lib/credentials.ts'
 import { detectDevice, socketUrl } from '../lib/device.ts'
 import { MediaStore, type MediaSnapshot } from '../lib/mediaStore.ts'
 import { RemoteClient, type Snapshot, type SocketLike } from '../lib/ws.ts'
+import { useUi } from './ui.ts'
 
 const identity = detectDevice(navigator.userAgent, navigator.maxTouchPoints)
 
-/** The one connection to the agent for this page. */
 export const client = new RemoteClient({
   url: socketUrl(window.location),
   store: localCredentialStore(),
@@ -16,16 +20,24 @@ export const client = new RemoteClient({
   platform: identity.platform,
 })
 
-/** Media and volume state, listening from the first message. */
 export const mediaStore = new MediaStore(client)
 
-export function useMedia(): MediaSnapshot {
-  return useSyncExternalStore(mediaStore.subscribe, mediaStore.getSnapshot)
-}
+export const useConnection = create<Snapshot>(() => client.getSnapshot())
+client.subscribe(() => {
+  useConnection.setState(client.getSnapshot(), true)
+})
 
-export function useRemote(): Snapshot {
-  return useSyncExternalStore(client.subscribe, client.getSnapshot)
-}
+export const useMedia = create<MediaSnapshot>(() => mediaStore.getSnapshot())
+mediaStore.subscribe(() => {
+  useMedia.setState(mediaStore.getSnapshot(), true)
+})
+
+client.on('toast', (p) => {
+  useUi.getState().showToast(p.level, p.message)
+})
+client.on('ack', (p) => {
+  if (!p.ok && p.error != null) useUi.getState().showToast('error', p.error)
+})
 
 /** Read `?pair=123456` once and remove it from the address bar so it never lingers. */
 export function takePairCode(): string | null {

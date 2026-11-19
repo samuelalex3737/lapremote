@@ -42,6 +42,12 @@ Print a recon report of this machine:
 uv run --project agent python scripts/recon.py
 ```
 
+Audit the built app with Lighthouse (agent running and serving the build):
+
+```bash
+cd web && npm run lighthouse -- http://127.0.0.1:7777/
+```
+
 ## Docs
 
 - [Architecture](docs/ARCHITECTURE.md)

@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
-import { E2E_DEVICE_ID, E2E_TOKEN, e2eHome } from './seed.ts'
+import { openPaired } from './helpers.ts'
+import { e2eHome } from './seed.ts'
 
 interface LogEntry {
   event: string
@@ -20,16 +21,7 @@ function agentLog(): LogEntry[] {
 }
 
 async function openTrackpad(page: Page) {
-  await page.addInitScript(
-    ([deviceId, token]) => {
-      localStorage.setItem('lapremote.credentials.v1', JSON.stringify({ deviceId, token }))
-      sessionStorage.removeItem('lapremote.hintsSeen')
-    },
-    [E2E_DEVICE_ID, E2E_TOKEN],
-  )
-  await page.goto('/')
-  await expect(page.getByRole('status')).toContainText('Connected to ')
-  await page.getByRole('button', { name: 'Trackpad', exact: true }).click()
+  await openPaired(page, { hints: true, tab: 'trackpad' })
   const surface = page.getByTestId('trackpad-surface')
   await expect(surface).toBeVisible()
   return surface
@@ -63,9 +55,11 @@ test('settings open, change and persist', async ({ page }) => {
   await page.getByRole('button', { name: 'Trackpad settings' }).click()
   const dialog = page.getByRole('dialog', { name: 'Trackpad settings' })
   await expect(dialog).toBeVisible()
-  const natural = dialog.getByRole('switch', { name: 'Natural scrolling' })
-  await natural.uncheck()
-  await dialog.getByRole('button', { name: 'Done' }).click()
+  const natural = dialog.getByRole('switch', { name: /Natural scrolling/ })
+  await expect(natural).toHaveAttribute('aria-checked', 'true')
+  await natural.click()
+  await expect(natural).toHaveAttribute('aria-checked', 'false')
+  await page.keyboard.press('Escape')
   await expect(dialog).toBeHidden()
   const stored = await page.evaluate(() => localStorage.getItem('lapremote.trackpad.v1'))
   expect(JSON.parse(stored ?? '{}')).toMatchObject({ naturalScroll: false })

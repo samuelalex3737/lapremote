@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import mimetypes
 import os
 import sys
 import time
@@ -42,6 +43,11 @@ from lapremote.system.dpi import enable_dpi_awareness
 from lapremote.system.network import detect_lan_ip
 from lapremote.system.platform_info import detect_display_server
 from lapremote.system.volume import VolumeBackend, VolumeService, create_volume_backend
+
+# Windows has no registry entry for these, so StaticFiles would send text/plain.
+mimetypes.add_type("application/manifest+json", ".webmanifest")
+mimetypes.add_type("text/javascript", ".js")
+mimetypes.add_type("font/woff2", ".woff2")
 
 PORT_ENV = "LAPREMOTE_PORT"
 INPUT_DRY_RUN_ENV = "LAPREMOTE_INPUT_DRY_RUN"

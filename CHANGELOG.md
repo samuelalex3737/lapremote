@@ -4,6 +4,31 @@ All notable changes to LapRemote. Versions follow [Semantic Versioning](https://
 
 ## [Unreleased]
 
+### Phase 4 - Remote app shell and design system
+
+- Design tokens in Tailwind v4 `@theme`: layered dark backgrounds, glass surfaces, text tiers with
+  AA contrast, a dynamic accent, status colours, 24px card radius, pills, and spring presets
+  (snappy, gentle).
+- Components: Button, IconButton, HoldButton (hold-to-confirm with a progress ring), Slider
+  (big target, haptic tick every 10%), SegmentedControl, Sheet (draggable bottom sheet), Toast,
+  StatusPill, Card, Switch, ListRow, EmptyState, Skeleton and Logo.
+- Navigation: a bottom tab bar (Now Playing, Trackpad, Keys, Launch, More) with an animated
+  indicator, plus swipe between tabs (not on the trackpad). More holds Scenes, Timer, Power, AI,
+  Devices and Settings. Features the laptop doesn't offer show the agent's own reason.
+- Connection UX: splash, pairing, then the app. A status pill shows "Connected to <host> · 12ms".
+  An offline banner shows while reconnecting, and an offline splash with "Try now" appears when
+  the first connection fails.
+- Keys tab (type text, quick keys, arrows) and Settings (laptop info, trackpad settings, forget
+  laptop).
+- State in Zustand (UI, connection mirror, media mirror, trackpad settings).
+- PWA: manifest, original logo mark, icons (192, 512, maskable, apple-touch), 7 iOS splash
+  screens, iOS meta tags, service worker (registers on HTTPS or localhost), self-hosted Inter
+  font (no internet needed) and robots.txt (never indexed).
+- Reduced motion, safe areas, 44px targets, a landscape trackpad layout, and touch-action pan-y
+  on scrolling content so horizontal swipes reach the app.
+- Agent: correct MIME types for .webmanifest, .js and .woff2 on Windows.
+- `npm run lighthouse` audits the built app through the Lighthouse Node API.
+
 ### Phase 3 - Universal media engine
 
 - `MediaBackend` ABC with an async change stream. Backends:
