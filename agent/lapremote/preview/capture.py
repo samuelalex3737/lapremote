@@ -78,11 +78,19 @@ def scaled_size(src_w: int, src_h: int, width: int) -> tuple[int, int]:
     return out_w, out_h
 
 
-def encode_frame(rgb: bytes, size: tuple[int, int], width: int, quality: int) -> Frame:
-    img = Image.frombytes("RGB", size, rgb)
+def encode_frame(
+    pixels: bytes, size: tuple[int, int], width: int, quality: int, raw_mode: str = "RGB"
+) -> Frame:
+    """Scale and JPEG-encode raw pixels. ``raw_mode`` "BGRX" decodes mss shots natively."""
+    img = Image.frombytes("RGB", size, pixels, "raw", raw_mode)
     out = scaled_size(size[0], size[1], width)
     if out != size:
-        img = img.resize(out, Image.Resampling.BILINEAR)
+        # A whole-number box reduce first is far cheaper than resizing the full frame.
+        factor = size[0] // out[0]
+        if factor >= 2:
+            img = img.reduce(factor)
+        if img.size != out:
+            img = img.resize(out, Image.Resampling.BILINEAR)
     buf = io.BytesIO()
     img.save(buf, format="JPEG", quality=quality)
     return Frame(buf.getvalue(), out[0], out[1])
@@ -126,7 +134,7 @@ class MssGrabber:
     def grab(self, monitor: int, width: int, quality: int) -> Frame:
         sct = self._mss()
         shot = sct.grab(sct.monitors[monitor + 1])
-        return encode_frame(shot.rgb, shot.size, width, quality)
+        return encode_frame(shot.bgra, shot.size, width, quality, raw_mode="BGRX")
 
 
 class PreviewStream:
@@ -183,7 +191,9 @@ class PreviewStream:
 
     async def send_one(self) -> None:
         try:
-            frame = await self._run(lambda: self._grabber.grab(self.monitor, self.width, self.quality))
+            frame = await self._run(
+                lambda: self._grabber.grab(self.monitor, self.width, self.quality)
+            )
         except Exception as exc:  # the screen can vanish (unplugged monitor, locked session)
             log_event(log, "capture_failed", level=30, error=repr(exc))
             await asyncio.sleep(1.0)
@@ -204,7 +214,9 @@ class PreviewService:
 
     def register(self) -> None:
         if self._grabber is None:
-            self._agent.set_feature("preview", False, "Screen capture isn't available on this laptop.")
+            self._agent.set_feature(
+                "preview", False, "Screen capture isn't available on this laptop."
+            )
             return
         self._agent.set_feature("preview", True)
         router = self._agent.router
@@ -245,7 +257,9 @@ class PreviewService:
             PreviewMeta(width=out_w, height=out_h, monitors=[m.to_wire() for m in monitors]),
         )
         stream.start()
-        log_event(log, "preview_started", conn=conn.conn_id, fps=p.fps, width=p.width, monitor=p.monitor)
+        log_event(
+            log, "preview_started", conn=conn.conn_id, fps=p.fps, width=p.width, monitor=p.monitor
+        )
 
     async def _stop_stream(self, conn: Connection) -> None:
         stream = self._streams.pop(conn.conn_id, None)

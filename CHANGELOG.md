@@ -4,6 +4,26 @@ All notable changes to LapRemote. Versions follow [Semantic Versioning](https://
 
 ## [Unreleased]
 
+### Phase 6 - Live screen preview and tap-to-click
+
+- Agent preview:
+  - mss capture on one dedicated thread
+  - native BGRX decode, integer box reduce, JPEG at the configured quality
+  - 8-byte big-endian frame header (frame, monitor)
+  - per-connection streams at the requested fps and width, never more than 2 unacked frames (capture is skipped while the phone is behind)
+  - stops on preview.stop or disconnect
+- `preview.meta` with the output size and every monitor's physical geometry.
+- `input.absclick` maps normalised coordinates to the chosen monitor's physical pixels
+  (offsets and DPI included), moves the cursor and clicks.
+- `/calibration` page with five targets that measure click error in physical pixels.
+- Web Screen view (Trackpad tab, "Trackpad | Screen"):
+  - live frames, acked once drawn, monitor picker
+  - local pinch-zoom and pan, a Fit button
+  - tap to click, hold to right-click, with a ripple
+  - stops when hidden or unmounted, restarts after a reconnect
+- `scripts/measure.py` (preview bandwidth and CPU, ping latency, idle CPU) and
+  `npm run tap-accuracy` (end-to-end click accuracy on the real screen).
+
 ### Phase 5 - Now Playing and adaptive context
 
 - Agent context engine: the foreground app on Windows (pywin32), macOS (NSWorkspace + Quartz)

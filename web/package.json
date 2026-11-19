@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "e2e": "playwright test",
-    "lighthouse": "node tests/perf/lighthouse.ts"
+    "lighthouse": "node tests/perf/lighthouse.ts",
+    "tap-accuracy": "node tests/accuracy/tapAccuracy.ts"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",

@@ -73,6 +73,9 @@ allow-star-arg-any = true
 # WinRT and COM objects are dynamically typed.
 "lapremote/media/windows.py" = ["ANN401"]
 "lapremote/system/volume.py" = ["ANN401"]
+"lapremote/preview/capture.py" = ["ANN401"]
+# make_app mirrors create_app's keyword knobs.
+"tests/wsclient.py" = ["PLR0913"]
 
 [tool.mypy]
 python_version = "3.12"

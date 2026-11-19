@@ -88,7 +88,7 @@ def owner(client: TestClient, app: object) -> tuple[str, str]:
 
 
 def frames(p: Phone, count: int) -> list[tuple[int, int, bytes]]:
-    out = []
+    out: list[tuple[int, int, bytes]] = []
     while len(out) < count:
         message = p.ws.receive()
         data = message.get("bytes")
@@ -106,7 +106,9 @@ def test_preview_streams_with_backpressure(isolated_home: Path) -> None:
         device_id, token = owner(client, app)
         with phone(client) as p:
             p.resume(device_id, token)
-            ack, before = p.ack_with(p.send("preview.start", {"fps": 15, "width": 480, "monitor": 1}))
+            ack, before = p.ack_with(
+                p.send("preview.start", {"fps": 15, "width": 480, "monitor": 1})
+            )
             assert ack["ok"] is True
             meta = next(m["payload"] for m in before if m["type"] == "preview.meta")
             assert meta["width"] == 480
@@ -153,17 +155,27 @@ def test_preview_unavailable_without_grabber(isolated_home: Path) -> None:
 
 def test_absclick_maps_to_the_right_monitor(isolated_home: Path) -> None:
     rec = Recorder()
-    devices = InputDevices(Mouse(rec, "windows"), Keyboard(rec, "windows"), InputPermission(True, None))
+    devices = InputDevices(
+        Mouse(rec, "windows"), Keyboard(rec, "windows"), InputPermission(True, None)
+    )
     app = make_app(isolated_home, grabber=FakeGrabber(), input_devices=devices)
     with TestClient(app) as client:
         device_id, token = owner(client, app)
         with phone(client) as p:
             p.resume(device_id, token)
-            assert p.ack_for(p.send("input.absclick", {"x": 0.5, "y": 0.5, "monitor": 1, "button": "left"}))["ok"]
-            assert p.ack_for(p.send("input.absclick", {"x": 0.0, "y": 1.0, "monitor": 0, "button": "right"}))["ok"]
-            ack = p.ack_for(p.send("input.absclick", {"x": 0.5, "y": 0.5, "monitor": 3, "button": "left"}))
+            assert p.ack_for(
+                p.send("input.absclick", {"x": 0.5, "y": 0.5, "monitor": 1, "button": "left"})
+            )["ok"]
+            assert p.ack_for(
+                p.send("input.absclick", {"x": 0.0, "y": 1.0, "monitor": 0, "button": "right"})
+            )["ok"]
+            ack = p.ack_for(
+                p.send("input.absclick", {"x": 0.5, "y": 0.5, "monitor": 3, "button": "left"})
+            )
             assert ack["error"] == "That screen isn't connected anymore."
-            ack = p.ack_for(p.send("input.absclick", {"x": 1.5, "y": 0.5, "monitor": 0, "button": "left"}))
+            ack = p.ack_for(
+                p.send("input.absclick", {"x": 1.5, "y": 0.5, "monitor": 0, "button": "left"})
+            )
             assert ack["ok"] is False
     assert rec.calls == [
         ("move_to", 3200, 520),
@@ -183,7 +195,9 @@ def test_calibration_page(isolated_home: Path) -> None:
     assert "window.__calibration" in response.text
 
 
-@pytest.mark.skipif(sys.platform != "win32", reason="real capture is checked on the Windows dev laptop")
+@pytest.mark.skipif(
+    sys.platform != "win32", reason="real capture is checked on the Windows dev laptop"
+)
 def test_real_screen_capture() -> None:
     grabber = MssGrabber()
     monitors = grabber.monitors()

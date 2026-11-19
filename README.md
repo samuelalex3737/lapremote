@@ -48,6 +48,8 @@ Audit the built app with Lighthouse (agent running and serving the build):
 cd web && npm run lighthouse -- http://127.0.0.1:7777/
 ```
 
+Measure preview bandwidth, latency and CPU, or click accuracy, against a throwaway agent (see the comments in `scripts/measure.py` and `web/tests/accuracy/tapAccuracy.ts`).
+
 ## Docs
 
 - [Architecture](docs/ARCHITECTURE.md)

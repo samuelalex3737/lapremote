@@ -20,6 +20,8 @@ model review and the residual-risk list.
 | No arbitrary execution | No message carries a command line or arbitrary path. Every action comes from the fixed allowlist in `protocol.py`. AI actions are limited to `AI_ACTION_TYPES`. Shortcut URLs must be http(s). |
 | Logs | Commands are logged as JSON lines with type, device, result and timing only. Tokens, pairing codes and typed text are never logged (`key.text` logs only its length). Uvicorn access logs are off because they would record `?pair=` codes. |
 | Unauthenticated HTTP | `GET /api/health` returns only `{ok, version, uptime}`. API docs (`/docs`, `/openapi.json`) are disabled. |
+| Calibration page | `GET /calibration` is an unauthenticated static test page. It contains no data and only measures clicks made on it. |
+| Screen preview | Owner-only (`preview.*`, `input.absclick`), at most 2 frames in flight per phone, and the stream stops the moment the phone disconnects. Frames are never written to disk or logged. |
 | Static files | Served by Starlette `StaticFiles` from the package folder only. Path traversal is tested. |
 
 ## Subprocess calls (Phase 3)
