@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+*.egg-info/
+
+# Agent build output
+agent/lapremote/static/
+agent/build/
+agent/dist/
+
+# Web
+node_modules/
+web/dist/
+web/test-results/
+web/playwright-report/
+web/blob-report/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
