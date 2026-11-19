@@ -22,6 +22,19 @@ model review and the residual-risk list.
 | Unauthenticated HTTP | `GET /api/health` returns only `{ok, version, uptime}`. API docs (`/docs`, `/openapi.json`) are disabled. |
 | Static files | Served by Starlette `StaticFiles` from the package folder only. Path traversal is tested. |
 
+## Subprocess calls (Phase 3)
+
+The agent starts external programs only with fixed executables found by `shutil.which` and fixed
+arguments. No argument ever contains text from the phone:
+
+| File | Program | Arguments |
+|---|---|---|
+| `media/macos.py` | `media-control` | `stream`, a fixed command name, or `seek <number formatted by the agent>` |
+| `media/linux.py` | `playerctl` | fixed flags, a player name that must be a currently listed MPRIS player, `position <number>` |
+| `system/volume.py` | `osascript` / `pactl` | fixed scripts or sink names with integers and booleans formatted by the agent |
+
+Windows uses in-process APIs (WinRT, Core Audio, pywin32) and runs no subprocess.
+
 ## Known limits today
 
 - Traffic is plain HTTP/WS on the local network unless HTTPS is enabled (Phase 8). Someone who can

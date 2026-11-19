@@ -29,6 +29,7 @@ async function openTrackpad(page: Page) {
   )
   await page.goto('/')
   await expect(page.getByRole('status')).toContainText('Connected to ')
+  await page.getByRole('button', { name: 'Trackpad', exact: true }).click()
   const surface = page.getByTestId('trackpad-surface')
   await expect(surface).toBeVisible()
   return surface

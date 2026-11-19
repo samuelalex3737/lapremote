@@ -1,17 +1,24 @@
 import { useEffect, useState } from 'react'
 import { DevicesList } from '../features/devices/DevicesList.tsx'
+import { MediaPanel } from '../features/nowplaying/MediaPanel.tsx'
 import { PairScreen } from '../features/pairing/PairScreen.tsx'
 import { Trackpad } from '../features/trackpad/Trackpad.tsx'
-import { client, takePairCode, useRemote } from './client.ts'
+import { client, mediaStore, takePairCode, useRemote } from './client.ts'
 import { Toaster } from './Toaster.tsx'
 
 const initialPairCode = takePairCode()
 
-type View = 'trackpad' | 'devices'
+type View = 'media' | 'trackpad' | 'devices'
+
+const VIEWS: [View, string][] = [
+  ['media', 'Media'],
+  ['trackpad', 'Trackpad'],
+  ['devices', 'Devices'],
+]
 
 export function App() {
   const { status, session, latencyMs } = useRemote()
-  const [view, setView] = useState<View>('trackpad')
+  const [view, setView] = useState<View>('media')
 
   useEffect(() => {
     if (initialPairCode !== null) client.pair(initialPairCode)
@@ -79,20 +86,32 @@ export function App() {
               Connected to {session.hostName}
               {latencyMs !== null && ` · ${String(latencyMs)}ms`}
             </p>
-            <button
-              type="button"
-              className="min-h-11 shrink-0 rounded-full border border-white/15 px-4 text-sm font-medium"
-              onClick={() => {
-                setView(view === 'trackpad' ? 'devices' : 'trackpad')
-              }}
-            >
-              {view === 'trackpad' ? 'Devices' : 'Trackpad'}
-            </button>
           </header>
+          <nav className="flex gap-2" aria-label="Sections">
+            {VIEWS.map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={view === id}
+                className={`min-h-11 flex-1 rounded-full border px-4 text-sm font-medium ${
+                  view === id ? 'border-white/40 bg-white/15' : 'border-white/10'
+                }`}
+                onClick={() => {
+                  setView(id)
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </nav>
 
-          {view === 'trackpad' ? (
-            <Trackpad client={client} session={session} />
-          ) : (
+          {view === 'media' && (
+            <div className="flex-1 overflow-y-auto">
+              <MediaPanel client={client} store={mediaStore} />
+            </div>
+          )}
+          {view === 'trackpad' && <Trackpad client={client} session={session} />}
+          {view === 'devices' && (
             <div className="flex flex-1 flex-col gap-6 overflow-y-auto">
               <p className="text-base text-zinc-300">
                 {session.role === 'owner'

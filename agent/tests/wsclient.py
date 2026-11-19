@@ -16,8 +16,12 @@ from starlette.testclient import WebSocketTestSession
 from lapremote.config import Config
 from lapremote.core import Agent
 from lapremote.input.service import InputDevices, detect_input_devices
+from lapremote.media.base import MediaBackend, NoSessionBackend
 from lapremote.security.ratelimit import Limits
 from lapremote.server import create_app
+from lapremote.system.volume import VolumeBackend
+
+from .fakes import FakeVolume
 
 ORIGIN = "http://testserver"
 
@@ -29,6 +33,8 @@ def make_app(
     auth_timeout: float = 5.0,
     static_dir: Path | None = None,
     input_devices: InputDevices | None = None,
+    media_backend: MediaBackend | None = None,
+    volume_backend: VolumeBackend | None = None,
 ) -> FastAPI:
     # Never inject real input from tests: default to the dry-run backend.
     devices = input_devices or detect_input_devices("windows", None, dry_run=True)
@@ -43,6 +49,9 @@ def make_app(
         limits=limits,
         auth_timeout=auth_timeout,
         input_devices=devices,
+        # Never touch the real media sessions or system volume from tests by default.
+        media_backend=media_backend or NoSessionBackend(),
+        volume_backend=volume_backend or FakeVolume(),
     )
 
 
@@ -86,6 +95,18 @@ class Phone:
             if message["type"] == "ack" and message["payload"]["id"] == msg_id:
                 payload: dict[str, Any] = message["payload"]
                 return payload
+        msg = f"no ack for {msg_id}"
+        raise AssertionError(msg)
+
+    def ack_with(self, msg_id: str, limit: int = 20) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+        """The ack for msg_id plus every other message that arrived before it."""
+        others: list[dict[str, Any]] = []
+        for _ in range(limit):
+            message = self.recv()
+            if message["type"] == "ack" and message["payload"]["id"] == msg_id:
+                payload: dict[str, Any] = message["payload"]
+                return payload, others
+            others.append(message)
         msg = f"no ack for {msg_id}"
         raise AssertionError(msg)
 

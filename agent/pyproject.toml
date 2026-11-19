@@ -5,13 +5,21 @@ description = "LapRemote agent - control your laptop from your phone"
 requires-python = ">=3.12,<3.13"
 license = "MIT"
 dependencies = [
+    "comtypes>=1.5.0 ; sys_platform == 'win32'",
     "fastapi>=0.165.0",
     "mss>=10.2.0",
+    "pillow>=13.0.0",
     "psutil>=7.2.2",
+    "pycaw>=20260927 ; sys_platform == 'win32'",
     "pydantic>=2.14.3",
     "pynput>=1.8.2",
+    "pywin32>=312 ; sys_platform == 'win32'",
     "qrcode>=8.2",
     "uvicorn[standard]>=0.54.0",
+    "winrt-windows-foundation>=4!10.0.28000.2957 ; sys_platform == 'win32'",
+    "winrt-windows-foundation-collections>=4!10.0.28000.2957 ; sys_platform == 'win32'",
+    "winrt-windows-media-control>=4!10.0.28000.2957 ; sys_platform == 'win32'",
+    "winrt-windows-storage-streams>=4!10.0.28000.2957 ; sys_platform == 'win32'",
     "zeroconf>=0.154.0",
 ]
 
@@ -32,8 +40,10 @@ dev = [
     "pytest>=9.2.0",
     "pytest-asyncio>=1.5.0",
     "ruff>=0.17.5",
+    "types-pillow>=10.2.0.20240822",
     "types-psutil>=7.2.2.20261111",
     "types-pynput>=1.8.1.20260712",
+    "types-pywin32>=312.0.0.20261104",
     "types-qrcode>=8.2.0.20260518",
 ]
 
@@ -58,6 +68,9 @@ allow-star-arg-any = true
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "ANN", "PLR2004", "S104", "S105", "S106", "S108"]
+# WinRT and COM objects are dynamically typed.
+"lapremote/media/windows.py" = ["ANN401"]
+"lapremote/system/volume.py" = ["ANN401"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -65,6 +78,11 @@ strict = true
 warn_unreachable = true
 plugins = ["pydantic.mypy"]
 files = ["lapremote", "tests", "../scripts"]
+
+[[tool.mypy.overrides]]
+# No type information is published for these COM wrappers.
+module = ["pycaw.*", "comtypes.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

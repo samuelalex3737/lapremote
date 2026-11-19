@@ -30,13 +30,18 @@ from lapremote.core import Agent
 from lapremote.discovery import Advertiser
 from lapremote.input.service import InputDevices, detect_input_devices, register_input
 from lapremote.logging_setup import get_logger, log_event, setup_logging
+from lapremote.media.base import MediaBackend
+from lapremote.media.keys_fallback import MediaKeys
+from lapremote.media.service import MediaService, create_media_backend
 from lapremote.protocol import Ack
 from lapremote.router import MSG_INVALID
 from lapremote.security.pairing import CODE_TTL_SECONDS
 from lapremote.security.ratelimit import Limits
+from lapremote.system.context import read_foreground
 from lapremote.system.dpi import enable_dpi_awareness
 from lapremote.system.network import detect_lan_ip
 from lapremote.system.platform_info import detect_display_server
+from lapremote.system.volume import VolumeBackend, VolumeService, create_volume_backend
 
 PORT_ENV = "LAPREMOTE_PORT"
 INPUT_DRY_RUN_ENV = "LAPREMOTE_INPUT_DRY_RUN"
@@ -145,10 +150,12 @@ def _make_lifespan(
         advertiser = Advertiser()
         if opts.advertise and ip is not None:
             await advertiser.start(ip, opts.port, agent.host_name)
+        await agent.startup()
         log_event(log, "agent_started", version=__version__, port=opts.port, lanIp=ip)
         try:
             yield
         finally:
+            await agent.shutdown()
             watcher.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await watcher
@@ -212,6 +219,8 @@ def create_app(  # noqa: PLR0913 - explicit knobs keep tests free of monkeypatch
     limits: Limits | None = None,
     auth_timeout: float = AUTH_TIMEOUT_SECONDS,
     input_devices: InputDevices | None = None,
+    media_backend: MediaBackend | None = None,
+    volume_backend: VolumeBackend | None = None,
 ) -> FastAPI:
     # Before anything touches the screen, so coordinates are physical pixels on Windows.
     dpi_mode = enable_dpi_awareness()
@@ -226,6 +235,12 @@ def create_app(  # noqa: PLR0913 - explicit knobs keep tests free of monkeypatch
             dry_run=os.environ.get(INPUT_DRY_RUN_ENV) == "1",
         )
     register_input(agent, input_devices)
+    keys = MediaKeys(input_devices.keyboard)
+    hint: str | None = None
+    if media_backend is None:
+        media_backend, hint = create_media_backend(agent.os)
+    MediaService(agent, media_backend, keys, read_foreground, hint).register()
+    VolumeService(agent, volume_backend or create_volume_backend(agent.os), keys).register()
     log_event(log, "input_ready", available=input_devices.permission.available, dpi=dpi_mode)
     opts = ServerOptions(
         port=port or int(os.environ.get(PORT_ENV) or config.port),

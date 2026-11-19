@@ -4,6 +4,27 @@ All notable changes to LapRemote. Versions follow [Semantic Versioning](https://
 
 ## [Unreleased]
 
+### Phase 3 - Universal media engine
+
+- `MediaBackend` ABC with an async change stream. Backends:
+  - Windows GSMTC: sessions, metadata, artwork thumbnails, playback and timeline events, per-session control and seek
+  - macOS `media-control stream`
+  - Linux `playerctl --follow`
+  - OS media keys fallback
+- `media.state` pushed on change with artwork sent once per connection (`artworkId`).
+  `media.artwork` serves images a phone is missing. Position-only updates are suppressed unless
+  they drift more than 1 second from interpolation.
+- Smart seek: the session API when the player can seek, otherwise site keys (YouTube j/l,
+  Netflix/Prime arrows, generic arrows), and only when a browser is in front.
+- Volume per OS (pycaw / osascript / pactl), polled every 500ms and pushed only on change, with a
+  volume-key fallback.
+- Foreground app detection and classification (browser sites, music, video, presentation) on
+  Windows, used by smart seek.
+- COM runs multithreaded so pycaw and WinRT share the asyncio thread without deadlocks.
+- One failing feature can no longer stop the others from sending their state on connect.
+- Web: media store with an artwork cache and position interpolation. A media screen lists every
+  session with prev, -10s, play/pause, +10s and next, plus volume.
+
 ### Phase 2 - Input engine and trackpad
 
 - Agent `input/`: relative moves with sub-pixel carry, clicks, press/release (drag), per-OS

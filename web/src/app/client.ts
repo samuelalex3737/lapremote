@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import { localCredentialStore } from '../lib/credentials.ts'
 import { detectDevice, socketUrl } from '../lib/device.ts'
+import { MediaStore, type MediaSnapshot } from '../lib/mediaStore.ts'
 import { RemoteClient, type Snapshot, type SocketLike } from '../lib/ws.ts'
 
 const identity = detectDevice(navigator.userAgent, navigator.maxTouchPoints)
@@ -14,6 +15,13 @@ export const client = new RemoteClient({
   deviceName: identity.name,
   platform: identity.platform,
 })
+
+/** Media and volume state, listening from the first message. */
+export const mediaStore = new MediaStore(client)
+
+export function useMedia(): MediaSnapshot {
+  return useSyncExternalStore(mediaStore.subscribe, mediaStore.getSnapshot)
+}
 
 export function useRemote(): Snapshot {
   return useSyncExternalStore(client.subscribe, client.getSnapshot)

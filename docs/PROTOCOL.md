@@ -172,6 +172,19 @@ These do not change the contract. They pin down how the contract is read.
    - `input.zoom` presses Ctrl + `=`/`-` (Cmd on macOS).
    - If a phone disconnects while holding a mouse button (`input.down`), the agent releases the
      button.
+9. **Timestamps.** Every timestamp (`ts`, `updatedAt`, `endsAt`, `expiresAt`, `pairedAt`,
+   `lastSeenAt`) is Unix epoch **milliseconds**.
+10. **Media state.**
+    - `position` is the position at `updatedAt`. The phone interpolates while `status` is
+      `playing`: `position + (now - updatedAt) / 1000 * rate`.
+    - The agent re-sends `media.state` when anything other than position changes, or when the
+      reported position drifts more than 1 second from that interpolation (a seek, a stall). It
+      never sends position ticks.
+    - Session ids are stable while a session lives, but they are not persistent.
+    - `media.select` sets which session commands without a `sessionId` go to. It is reflected in
+      `currentId`.
+    - Without any session API, or with nothing listed, play/pause/next/previous fall back to the
+      OS media keys.
 
 ## Canonical message list
 
@@ -254,3 +267,4 @@ scenes.state
 | 2026-11-19 | Phase 0: contract copied from the build spec. |
 | 2026-11-19 | Phase 1: approved additions P1-P7, `/api/health` limited to `{ok, version, uptime}`, `artworkId` and `media.artwork`. |
 | 2026-11-19 | Phase 2: clarification 8 (input units). No contract change. |
+| 2026-11-19 | Phase 3: clarifications 9 (timestamps in ms) and 10 (media state). No contract change. |

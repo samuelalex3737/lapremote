@@ -59,6 +59,7 @@ CLOSE_REVOKED = 4003
 CLOSE_REVOKED_REASON = "revoked"
 
 ConnectHook = Callable[[Connection], Awaitable[None]]
+LifecycleHook = Callable[[], Awaitable[None]]
 
 
 class Agent:
@@ -92,6 +93,8 @@ class Agent:
         }
         self.on_connect: list[ConnectHook] = []
         self.on_disconnect: list[ConnectHook] = []
+        self.on_startup: list[LifecycleHook] = []
+        self.on_shutdown: list[LifecycleHook] = []
         self._background: set[asyncio.Task[None]] = set()
         self._register_core()
 
@@ -120,6 +123,17 @@ class Agent:
 
     def features(self) -> Features:
         return Features(**self.feature_status, secure_context=self.config.https.enabled)
+
+    async def startup(self) -> None:
+        for hook in self.on_startup:
+            await hook()
+
+    async def shutdown(self) -> None:
+        for hook in reversed(self.on_shutdown):
+            try:
+                await hook()
+            except Exception:
+                self.log.exception("shutdown_hook_failed")
 
     def spawn(self, coro: Awaitable[None]) -> None:
         """Run a coroutine in the background, keeping a reference until it finishes."""
@@ -165,7 +179,11 @@ class Agent:
             ),
         )
         for hook in self.on_connect:
-            await hook(conn)
+            # One feature failing to send its state must not stop the others.
+            try:
+                await hook(conn)
+            except Exception:
+                self.log.exception("connect_hook_failed")
         await self.broadcast_devices()
 
     async def disconnected(self, conn: Connection) -> None:
@@ -192,8 +210,9 @@ class Agent:
                     name=d.name,
                     platform=d.platform,
                     role=d.role,
-                    paired_at=d.paired_at,
-                    last_seen_at=d.last_seen_at,
+                    # Protocol timestamps are Unix epoch milliseconds.
+                    paired_at=d.paired_at * 1000,
+                    last_seen_at=d.last_seen_at * 1000 if d.last_seen_at is not None else None,
                     online=self.hub.is_online(d.device_id),
                 )
                 for d in self.devices.list()
