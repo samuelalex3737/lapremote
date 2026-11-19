@@ -23,6 +23,9 @@ SCROLL_UNIT_PER_STEP: dict[OsName, float] = {"windows": 1 / 120, "macos": 1.0, "
 
 class MouseBackend(Protocol):
     def move(self, dx: int, dy: int) -> None: ...
+    def move_to(self, x: int, y: int) -> None:
+        """Absolute position in physical screen pixels (virtual desktop coordinates)."""
+        ...
     def press(self, button: Button) -> None: ...
     def release(self, button: Button) -> None: ...
     def scroll(self, dx: float, dy: float) -> None:
@@ -63,6 +66,11 @@ class Mouse:
         ix, iy = self._move.take(dx, dy)
         if ix or iy:
             self._backend.move(ix, iy)
+
+    def click_at(self, x: int, y: int, button: Button) -> None:
+        self._move = _Carry()
+        self._backend.move_to(x, y)
+        self.click(button)
 
     def click(self, button: Button) -> None:
         if button in self._held:
@@ -112,6 +120,9 @@ class PynputMouse:
 
     def move(self, dx: int, dy: int) -> None:
         self._controller.move(dx, dy)
+
+    def move_to(self, x: int, y: int) -> None:
+        self._controller.position = (x, y)
 
     def press(self, button: Button) -> None:
         self._controller.press(self._buttons[button])

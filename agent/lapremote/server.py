@@ -29,11 +29,18 @@ from lapremote.config import Config, data_dir, load_config
 from lapremote.connection import Connection
 from lapremote.core import Agent
 from lapremote.discovery import Advertiser
-from lapremote.input.service import InputDevices, detect_input_devices, register_input
+from lapremote.input.service import (
+    InputDevices,
+    ScreenRect,
+    detect_input_devices,
+    register_input,
+)
 from lapremote.logging_setup import get_logger, log_event, setup_logging
 from lapremote.media.base import MediaBackend
 from lapremote.media.keys_fallback import MediaKeys
 from lapremote.media.service import MediaService, create_media_backend
+from lapremote.preview.calibration import CALIBRATION_PAGE
+from lapremote.preview.capture import Grabber, PreviewService, create_grabber
 from lapremote.protocol import Ack
 from lapremote.router import MSG_INVALID
 from lapremote.security.pairing import CODE_TTL_SECONDS
@@ -228,6 +235,7 @@ def create_app(  # noqa: PLR0913 - explicit knobs keep tests free of monkeypatch
     media_backend: MediaBackend | None = None,
     volume_backend: VolumeBackend | None = None,
     foreground_reader: ForegroundReader | Literal["auto"] | None = "auto",
+    grabber: Grabber | Literal["auto"] | None = "auto",
 ) -> FastAPI:
     # Before anything touches the screen, so coordinates are physical pixels on Windows.
     dpi_mode = enable_dpi_awareness()
@@ -241,7 +249,13 @@ def create_app(  # noqa: PLR0913 - explicit knobs keep tests free of monkeypatch
             detect_display_server(agent.os),
             dry_run=os.environ.get(INPUT_DRY_RUN_ENV) == "1",
         )
-    register_input(agent, input_devices)
+    preview = PreviewService(agent, create_grabber() if grabber == "auto" else grabber)
+    preview.register()
+
+    async def monitor_rects() -> list[ScreenRect]:
+        return [ScreenRect(m.left, m.top, m.width, m.height) for m in await preview.monitors()]
+
+    register_input(agent, input_devices, monitor_rects if grabber is not None else None)
     keys = MediaKeys(input_devices.keyboard)
     hint: str | None = None
     if media_backend is None:
@@ -274,6 +288,10 @@ def create_app(  # noqa: PLR0913 - explicit knobs keep tests free of monkeypatch
         return HealthResponse(
             ok=True, version=__version__, uptime=round(time.monotonic() - started, 1)
         )
+
+    @app.get("/calibration", response_class=HTMLResponse)
+    async def calibration() -> str:
+        return CALIBRATION_PAGE
 
     @app.websocket("/ws")
     async def websocket_endpoint(ws: WebSocket) -> None:

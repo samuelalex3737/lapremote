@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import Counter
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -14,6 +15,7 @@ from lapremote.input.mouse import Mouse, PynputMouse
 from lapremote.logging_setup import get_logger, log_event
 from lapremote.protocol import (
     Button,
+    InputAbsClick,
     InputButton,
     InputMove,
     InputScroll,
@@ -54,6 +56,9 @@ class DryRunBackend:
     def move(self, dx: int, dy: int) -> None:
         self._record("move", dx=dx, dy=dy)
 
+    def move_to(self, x: int, y: int) -> None:
+        self._record("move_to", x=x, y=y)
+
     def press(self, key: object) -> None:
         self._record("press", key=str(key))
 
@@ -93,10 +98,31 @@ def detect_input_devices(
     return InputDevices(mouse, keyboard, permission)
 
 
+@dataclass(frozen=True)
+class ScreenRect:
+    left: int
+    top: int
+    width: int
+    height: int
+
+
+MonitorsProvider = Callable[[], Awaitable[list[ScreenRect]]]
+
+
+def absolute_point(rect: ScreenRect, x: float, y: float) -> tuple[int, int]:
+    """Normalised 0..1 coordinates on a monitor to physical virtual-desktop pixels."""
+    px = rect.left + round(min(1.0, max(0.0, x)) * (rect.width - 1))
+    py = rect.top + round(min(1.0, max(0.0, y)) * (rect.height - 1))
+    return px, py
+
+
 class InputService:
-    def __init__(self, agent: Agent, devices: InputDevices) -> None:
+    def __init__(
+        self, agent: Agent, devices: InputDevices, monitors: MonitorsProvider | None = None
+    ) -> None:
         self._agent = agent
         self._devices = devices
+        self._monitors = monitors
         # Buttons each connection is holding, so a dropped phone never leaves a button stuck.
         self._held: dict[str, set[Button]] = {}
 
@@ -116,6 +142,8 @@ class InputService:
         router.register("input.up", self._up)
         router.register("input.scroll", self._scroll)
         router.register("input.zoom", self._zoom)
+        if self._monitors is not None:
+            router.register("input.absclick", self._absclick)
         router.register("key.press", self._key_press)
         router.register("key.text", self._key_text)
         self._agent.on_disconnect.append(self._release_for)
@@ -160,6 +188,16 @@ class InputService:
     async def _zoom(self, _conn: Connection, p: InputZoom) -> None:
         self._keyboard.zoom(p.dir)
 
+    async def _absclick(self, _conn: Connection, p: InputAbsClick) -> None:
+        provider = self._monitors
+        if provider is None:
+            raise ActionError("Tap-to-click isn't available on this laptop.")
+        monitors = await provider()
+        if not 0 <= p.monitor < len(monitors):
+            raise ActionError("That screen isn't connected anymore.")
+        x, y = absolute_point(monitors[p.monitor], p.x, p.y)
+        self._mouse.click_at(x, y, p.button)
+
     async def _key_press(self, _conn: Connection, p: KeyPress) -> None:
         try:
             self._keyboard.press(p.key, p.modifiers)
@@ -179,7 +217,9 @@ class InputService:
         log_event(log, "released_buttons", conn=conn.conn_id, buttons=sorted(held))
 
 
-def register_input(agent: Agent, devices: InputDevices) -> InputService:
-    service = InputService(agent, devices)
+def register_input(
+    agent: Agent, devices: InputDevices, monitors: MonitorsProvider | None = None
+) -> InputService:
+    service = InputService(agent, devices, monitors)
     service.register()
     return service

@@ -3,7 +3,10 @@
  * behaviour (adaptive modes, banners, scrubbing) can be tested deterministically
  * without depending on what happens to be playing on the laptop.
  */
+import { readFileSync } from 'node:fs'
 import type { Page, WebSocketRoute } from '@playwright/test'
+
+export const FRAME_JPEG = readFileSync(new URL('./frame-480x270.jpg', import.meta.url))
 
 export const RED_JPEG =
   'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAAQABADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDyqiiivij+6z//2Q=='
@@ -15,7 +18,7 @@ export const FEATURES = {
   media: FEATURE,
   volume: FEATURE,
   brightness: { available: false, reason: 'Not available in this version yet.' },
-  preview: { available: false, reason: 'Not available in this version yet.' },
+  preview: FEATURE,
   context: FEATURE,
   power: { available: false, reason: 'Not available in this version yet.' },
   launcher: { available: false, reason: 'Not available in this version yet.' },
@@ -69,7 +72,21 @@ export class FakeAgent {
   private ws: WebSocketRoute | null = null
   private seq = 0
 
+  /** Monitors reported in preview.meta. */
+  monitors = [{ index: 0, left: 0, top: 0, width: 1920, height: 1080, primary: true }]
+  private frameNo = 0
+
   constructor(private readonly initial: { sessions: unknown[]; context: unknown }) {}
+
+  /** Send one binary preview frame: 8-byte big-endian header then the JPEG. */
+  pushFrame(monitor = 0): number {
+    this.frameNo += 1
+    const header = Buffer.alloc(8)
+    header.writeUInt32BE(this.frameNo, 0)
+    header.writeUInt32BE(monitor, 4)
+    this.ws?.send(Buffer.concat([header, FRAME_JPEG]))
+    return this.frameNo
+  }
 
   async install(page: Page): Promise<void> {
     await page.addInitScript(() => {
@@ -101,6 +118,13 @@ export class FakeAgent {
         return
       case 'ping':
         this.push('pong', { t: msg.payload.t })
+        return
+      case 'preview.start':
+        this.push('preview.meta', { width: 480, height: 270, monitors: this.monitors })
+        this.push('ack', { id: msg.id, ok: true, error: null })
+        this.pushFrame(Number(msg.payload.monitor ?? 0))
+        return
+      case 'preview.ack':
         return
       default:
         if (msg.type !== 'input.move' && msg.type !== 'input.scroll') {

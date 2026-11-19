@@ -32,6 +32,9 @@ class Recorder:
     def move(self, dx: int, dy: int) -> None:
         self.calls.append(("move", dx, dy))
 
+    def move_to(self, x: int, y: int) -> None:
+        self.calls.append(("move_to", x, y))
+
     def press(self, key: object) -> None:
         self.calls.append(("press", key))
 

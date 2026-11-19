@@ -124,6 +124,7 @@ export class RemoteClient {
   private snapshot: Snapshot = { status: { kind: 'unpaired', error: null }, session: null, latencyMs: null }
   private readonly listeners = new Set<() => void>()
   private readonly handlers = new Map<AgentType, Set<(payload: unknown) => void>>()
+  private readonly binaryHandlers = new Set<(data: ArrayBuffer) => void>()
   private readonly pending = new Map<string, Pending>()
   private queue: string[] = []
   private attempt = 0
@@ -163,6 +164,12 @@ export class RemoteClient {
     const wrapped = handler as (payload: unknown) => void
     set.add(wrapped)
     return () => set.delete(wrapped)
+  }
+
+  /** Binary frames (screen preview). The socket must use binaryType 'arraybuffer'. */
+  onBinary(handler: (data: ArrayBuffer) => void): () => void {
+    this.binaryHandlers.add(handler)
+    return () => this.binaryHandlers.delete(handler)
   }
 
   // ------------------------------------------------------------- lifecycle
@@ -218,7 +225,11 @@ export class RemoteClient {
       if (socket === this.socket) this.authenticate()
     }
     socket.onmessage = (event) => {
-      if (socket === this.socket && typeof event.data === 'string') this.receive(event.data)
+      if (socket !== this.socket) return
+      if (typeof event.data === 'string') this.receive(event.data)
+      else if (event.data instanceof ArrayBuffer) {
+        for (const handler of this.binaryHandlers) handler(event.data)
+      }
     }
     socket.onclose = (event) => {
       if (socket === this.socket) this.closed(event.code)

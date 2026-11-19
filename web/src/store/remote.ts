@@ -15,8 +15,13 @@ const identity = detectDevice(navigator.userAgent, navigator.maxTouchPoints)
 export const client = new RemoteClient({
   url: socketUrl(window.location),
   store: localCredentialStore(),
-  // The browser WebSocket satisfies SocketLike; its event objects carry more than we read.
-  createSocket: (url) => new WebSocket(url) as unknown as SocketLike,
+  createSocket: (url) => {
+    const socket = new WebSocket(url)
+    // Preview frames arrive as binary messages.
+    socket.binaryType = 'arraybuffer'
+    // The browser WebSocket satisfies SocketLike; its event objects carry more than we read.
+    return socket as unknown as SocketLike
+  },
   deviceName: identity.name,
   platform: identity.platform,
 })
