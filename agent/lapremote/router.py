@@ -5,6 +5,7 @@ Bad input never closes the connection: it gets ``ack ok:false`` with a short rea
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import time
@@ -66,13 +67,21 @@ def _describe(error: ValidationError) -> str:
 class Router:
     def __init__(self, logger: logging.Logger | None = None) -> None:
         self._handlers: dict[str, Handler] = {}
+        self._background_types: set[str] = set()
+        self._tasks: set[asyncio.Task[None]] = set()
         self._log = logger or get_logger("router")
 
-    def register(self, type_: str, handler: Handler) -> None:
+    def register(self, type_: str, handler: Handler, *, background: bool = False) -> None:
+        """Register a handler. ``background`` handlers (slow ones, like the AI planner)
+        run beside the connection's later messages instead of holding them up."""
         if type_ not in CLIENT_MESSAGES:
             msg = f"{type_!r} is not a client message in protocol.py"
             raise KeyError(msg)
         self._handlers[type_] = handler
+        if background:
+            self._background_types.add(type_)
+        else:
+            self._background_types.discard(type_)
 
     def has_handler(self, type_: str) -> bool:
         return type_ in self._handlers
@@ -157,6 +166,26 @@ class Router:
             await self._ack(conn, env.id, False, MSG_UNAVAILABLE)
             return
 
+        if type_ in self._background_types:
+            task = asyncio.get_running_loop().create_task(
+                self._run_handler(conn, env, spec, handler, payload, started, extra)
+            )
+            self._tasks.add(task)
+            task.add_done_callback(self._tasks.discard)
+            return
+        await self._run_handler(conn, env, spec, handler, payload, started, extra)
+
+    async def _run_handler(
+        self,
+        conn: Connection,
+        env: Envelope,
+        spec: ClientMessage,
+        handler: Handler,
+        payload: WireModel,
+        started: float,
+        extra: dict[str, Any],
+    ) -> None:
+        type_ = env.type
         try:
             await handler(conn, payload)
         except AuthRejectedError as exc:

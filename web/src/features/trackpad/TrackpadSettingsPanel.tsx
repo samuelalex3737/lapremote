@@ -7,6 +7,7 @@ import {
   type TrackpadSettings,
 } from '../../lib/gestures/settings.ts'
 import { Button } from '../../ui/Button.tsx'
+import { isSecure } from '../../lib/secure.ts'
 import { Switch } from '../../ui/primitives.tsx'
 import { Sheet } from '../../ui/Sheet.tsx'
 import { Slider } from '../../ui/Slider.tsx'
@@ -77,6 +78,27 @@ export function TrackpadSettingsForm({ settings, onChange }: FormProps) {
           set({ tapToClick })
         }}
       />
+      <Switch
+        label="Air mouse"
+        description={isSecure() ? 'Point the phone to move the cursor' : 'Point the phone to move the cursor. Needs HTTPS.'}
+        checked={settings.airMouse}
+        onChange={(airMouse) => {
+          set({ airMouse })
+        }}
+      />
+      {settings.airMouse && (
+        <Slider
+          label="Air mouse speed"
+          value={settings.airSpeed}
+          min={4}
+          max={40}
+          step={1}
+          valueText={String(settings.airSpeed)}
+          onChange={(airSpeed) => {
+            set({ airSpeed })
+          }}
+        />
+      )}
       <fieldset className="flex flex-col gap-1">
         <legend className="pb-2 text-sm font-medium">Three-finger swipes</legend>
         {DIRECTIONS.map(([dir, label]) => (

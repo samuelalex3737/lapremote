@@ -5,6 +5,7 @@ import { useConnection } from '../../store/remote.ts'
 import { useUi, type MoreScreen } from '../../store/ui.ts'
 import { IconButton } from '../../ui/Button.tsx'
 import { ListRow } from '../../ui/primitives.tsx'
+import { AiScreen } from '../ai/AiScreen.tsx'
 import { DevicesScreen } from '../devices/DevicesScreen.tsx'
 import { PowerScreen } from '../power/PowerScreen.tsx'
 import { ScenesScreen } from '../scenes/ScenesScreen.tsx'
@@ -49,10 +50,9 @@ function Screen({ entry }: { entry: Entry }) {
     case 'power':
       return <PowerScreen />
     case 'ai':
-      // Shows the agent's reason while the laptop doesn't offer this feature.
       return (
-        <FeatureGate feature={entry.feature ?? 'scenes'} title={entry.title}>
-          {null}
+        <FeatureGate feature="ai" title="The AI assistant">
+          <AiScreen />
         </FeatureGate>
       )
   }

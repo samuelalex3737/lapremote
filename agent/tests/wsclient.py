@@ -13,6 +13,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from starlette.testclient import WebSocketTestSession
 
+from lapremote.ai.providers import ChatProvider
 from lapremote.config import Config
 from lapremote.core import Agent
 from lapremote.input.service import InputDevices, detect_input_devices
@@ -45,6 +46,7 @@ def make_app(
     brightness_backend: BrightnessBackend | None = None,
     power_backend: PowerBackend | None = None,
     launcher: Launcher | None = None,
+    ai_provider: ChatProvider | None = None,
 ) -> FastAPI:
     # Never inject real input from tests: default to the dry-run backend.
     devices = input_devices or detect_input_devices("windows", None, dry_run=True)
@@ -70,6 +72,8 @@ def make_app(
         # Never the real power or launcher backends from tests.
         power_backend=power_backend or FakePower(),
         launcher=launcher or FakeLauncher(),
+        # Never a real AI model from tests: off unless a scripted provider is passed.
+        ai_provider=ai_provider,
     )
 
 

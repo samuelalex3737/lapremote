@@ -48,6 +48,12 @@ Audit the built app with Lighthouse (agent running and serving the build):
 cd web && npm run lighthouse -- http://127.0.0.1:7777/
 ```
 
+Try the AI planner against your local model without running anything on the laptop:
+
+```bash
+uv run --project agent python scripts/ai_smoke.py demo
+```
+
 Measure preview bandwidth, latency and CPU, or click accuracy, against a throwaway agent (see the comments in `scripts/measure.py` and `web/tests/accuracy/tapAccuracy.ts`).
 
 ## Docs
@@ -56,6 +62,9 @@ Measure preview bandwidth, latency and CPU, or click accuracy, against a throwaw
 - [Protocol](docs/PROTOCOL.md)
 - [Platform matrix](docs/PLATFORM_MATRIX.md)
 - [Testing](docs/TESTING.md)
+- [AI assistant setup](docs/AI.md) (Ollama, optional Groq or Gemini)
+- [HTTPS](docs/HTTPS.md) (mkcert or Tailscale, for voice input and the air mouse)
+- [Security](docs/SECURITY.md)
 
 ## License
 

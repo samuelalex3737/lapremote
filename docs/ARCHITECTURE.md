@@ -91,15 +91,26 @@ flowchart LR
 | `agent/lapremote/logging_setup.py` | JSON-lines log with rotation |
 | `agent/lapremote/system/platform_info.py` | OS detection and external tool checks |
 | `agent/lapremote/system/network.py` | LAN IP selection |
+| `agent/lapremote/system/{dpi,permissions,context,volume,brightness,power}.py` | DPI awareness, input permission checks, foreground app and site, volume, brightness, power actions |
+| `agent/lapremote/input/` | Mouse and keyboard (pynput), dry-run backend, absolute click mapping, input handlers |
+| `agent/lapremote/media/` | Media sessions per OS (GSMTC, media-control, playerctl), media keys fallback, smart seek, `media.state` push |
+| `agent/lapremote/preview/` | Screen capture (mss), JPEG frames with flow control, calibration page |
+| `agent/lapremote/shortcuts.py`, `scenes.py`, `timer.py` | Launcher, scenes, sleep timer |
+| `agent/lapremote/actions.py` | One facade for actions run by scenes, the timer and the AI |
+| `agent/lapremote/ai/` | Chat providers (Ollama, Groq, Gemini), the planner (prompt, validation, retry) and the AI service (plan, confirm, run) |
+| `agent/lapremote/services.py` | Builds every feature service; tests inject fakes through `Overrides` |
+| `agent/lapremote/storage.py` | Atomic JSON files seeded from `shared/*.default.json` |
 | `shared/protocol.schema.json` | Normalised protocol schema both sides are tested against |
 | `agent/tests/` | pytest suite |
 | `web/src/app/` | App shell |
-| `web/src/lib/` | Pure logic: `protocol.ts` (zod mirror), `ws.ts` (connection client), credentials, device naming |
-| `web/src/features/` | Feature screens (pairing, devices) |
+| `web/src/lib/` | Pure logic: `protocol.ts` (zod mirror), `ws.ts` (connection client), gestures, media, adaptive modes, preview, keys, timer, shortcuts, AI labels and suggestions, air mouse maths |
+| `web/src/store/` | Zustand stores: connection and laptop state, UI, AI conversation |
+| `web/src/ui/` | Design system: buttons, sheets, sliders, toasts, primitives |
+| `web/src/features/` | Screens: pairing, Now Playing, trackpad and air mouse, screen preview, keys, launcher, scenes, timer, power, AI, devices, settings, HTTPS help |
 | `web/tests/unit/` | vitest |
 | `web/tests/e2e/` | Playwright mobile smoke tests (iPhone 15, Pixel 8) |
-| `scripts/` | `dev.py`, `check.py`, `recon.py`, `build_web.py` |
-| `docs/` | Architecture, protocol, platform matrix, testing |
+| `scripts/` | `dev.py`, `check.py`, `recon.py`, `build_web.py`, `make_icons.py`, `measure.py`, `ai_smoke.py` |
+| `docs/` | Architecture, protocol, platform matrix, testing, security, AI, HTTPS, phase reports |
 
 Modules listed in the build spec are added in the phase that implements them. Nothing is created
 empty ahead of time.

@@ -6,10 +6,16 @@ import os
 from dataclasses import dataclass
 from typing import Literal
 
+import httpx
+
 from lapremote.actions import Actions
+from lapremote.ai.planner import Planner
+from lapremote.ai.providers import ChatProvider, create_provider
+from lapremote.ai.service import AiService
 from lapremote.core import Agent
 from lapremote.input.service import (
     InputDevices,
+    InputService,
     ScreenRect,
     detect_input_devices,
     register_input,
@@ -47,6 +53,7 @@ class Overrides:
     brightness_backend: BrightnessBackend | Auto | None = "auto"
     power_backend: PowerBackend | Auto = "auto"
     launcher: Launcher | Auto = "auto"
+    ai_provider: ChatProvider | Auto | None = "auto"
 
 
 @dataclass
@@ -60,7 +67,10 @@ class Services:
     power: PowerService
     preview: PreviewService
     actions: Actions
+    input: InputService
     input_available: bool
+    context: ContextService
+    ai: AiService | None
 
 
 def build_services(agent: Agent, ov: Overrides) -> Services:
@@ -77,7 +87,9 @@ def build_services(agent: Agent, ov: Overrides) -> Services:
     async def monitor_rects() -> list[ScreenRect]:
         return [ScreenRect(m.left, m.top, m.width, m.height) for m in await preview.monitors()]
 
-    register_input(agent, devices, monitor_rects if ov.grabber is not None else None)
+    input_service = register_input(
+        agent, devices, monitor_rects if ov.grabber is not None else None
+    )
 
     keys = MediaKeys(devices.keyboard)
     hint: str | None = None
@@ -87,7 +99,8 @@ def build_services(agent: Agent, ov: Overrides) -> Services:
     reader = make_reader() if ov.foreground_reader == "auto" else ov.foreground_reader
     media = MediaService(agent, media_backend, keys, reader or (lambda: None), hint)
     media.register()
-    ContextService(agent, reader).register()
+    context = ContextService(agent, reader)
+    context.register()
 
     volume = VolumeService(
         agent,
@@ -123,7 +136,7 @@ def build_services(agent: Agent, ov: Overrides) -> Services:
     timer = SleepTimer(agent, actions)
     timer.register()
 
-    return Services(
+    services = Services(
         media=media,
         volume=volume,
         brightness=brightness,
@@ -133,5 +146,29 @@ def build_services(agent: Agent, ov: Overrides) -> Services:
         power=power,
         preview=preview,
         actions=actions,
+        input=input_service,
         input_available=devices.permission.available,
+        context=context,
+        ai=None,
     )
+    services.ai = _build_ai(agent, services, ov.ai_provider)
+    return services
+
+
+def _build_ai(
+    agent: Agent, services: Services, provider: ChatProvider | Auto | None
+) -> AiService | None:
+    if provider is None:
+        agent.set_feature("ai", False, "The AI assistant is turned off.")
+        return None
+    if provider == "auto":
+        client = httpx.AsyncClient()
+
+        async def close_client() -> None:
+            await client.aclose()
+
+        agent.on_shutdown.append(close_client)
+        provider = create_provider(agent.config.ai, client)
+    service = AiService(agent, services, Planner(provider), services.context)
+    service.register()
+    return service

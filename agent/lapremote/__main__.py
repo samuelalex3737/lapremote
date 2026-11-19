@@ -13,7 +13,7 @@ import uvicorn
 from lapremote import __version__
 from lapremote.config import ConfigError, load_config
 from lapremote.protocol import MAX_MESSAGE_BYTES
-from lapremote.server import PORT_ENV
+from lapremote.server import HTTPS_ENV, PORT_ENV
 from lapremote.services import INPUT_DRY_RUN_ENV
 
 # Listen on every interface so phones on the same Wi-Fi can connect. Every
@@ -30,11 +30,26 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="accept input commands but never move the real mouse or type (demos and tests)",
     )
+    parser.add_argument(
+        "--https",
+        action="store_true",
+        help="serve over HTTPS with the cert and key set in config.json (see docs/HTTPS.md)",
+    )
     parser.add_argument("--version", action="version", version=f"lapremote {__version__}")
     args = parser.parse_args(argv)
     if args.port is not None and not 1024 <= args.port <= 65535:
         parser.error("--port must be between 1024 and 65535")
     return args
+
+
+def https_problem(cert: str, key: str) -> str | None:
+    """Why HTTPS can't start with these files, or None when both are there."""
+    if not cert or not key:
+        return 'set "https": {"cert": ..., "key": ...} in config.json (see docs/HTTPS.md).'
+    for label, value in (("certificate", cert), ("key", key)):
+        if not Path(value).is_file():
+            return f"the {label} file {value} doesn't exist."
+    return None
 
 
 def _utf8_stdio() -> None:
@@ -54,6 +69,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"LapRemote could not start: {exc}", file=sys.stderr)
         return 2
     port: int = args.port if args.port is not None else config.port
+    https = args.https or config.https.enabled
+    ssl: dict[str, str] = {}
+    if https:
+        problem = https_problem(config.https.cert, config.https.key)
+        if problem is not None:
+            print(f"LapRemote could not start with HTTPS: {problem}", file=sys.stderr)
+            return 2
+        ssl = {"ssl_certfile": config.https.cert, "ssl_keyfile": config.https.key}
+        os.environ[HTTPS_ENV] = "1"
     # The app factory runs in the (reloader) worker process, so pass the port on.
     os.environ[PORT_ENV] = str(port)
     if args.input_dry_run:
@@ -70,6 +94,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         access_log=False,  # access logs would record ?pair= codes
         ws_max_size=MAX_MESSAGE_BYTES,
         log_level="warning",
+        **ssl,  # type: ignore[arg-type]
     )
     return 0
 

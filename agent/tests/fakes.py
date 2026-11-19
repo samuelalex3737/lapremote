@@ -8,6 +8,7 @@ from dataclasses import replace
 
 from PIL import Image
 
+from lapremote.ai.providers import ChatMessage, ProviderError
 from lapremote.media.base import MediaBackend, MediaCommand, SessionSnapshot, now_ms, thumbnail_jpeg
 from lapremote.protocol import PowerActionName
 from lapremote.shortcuts import LaunchError
@@ -158,3 +159,24 @@ class FakeBrightness:
 
     def set(self, level: int) -> None:
         self.level = level
+
+
+class ScriptedProvider:
+    """A chat provider that answers from a script, so AI tests never call a real model."""
+
+    name = "scripted"
+    model = "scripted-1"
+
+    def __init__(self, answers: list[str] | None = None, ready: str | None = None) -> None:
+        self.answers = list(answers or [])
+        self.ready = ready
+        self.calls: list[tuple[str, list[ChatMessage]]] = []
+
+    async def complete(self, system: str, messages: list[ChatMessage]) -> str:
+        self.calls.append((system, list(messages)))
+        if not self.answers:
+            raise ProviderError("The AI model isn't answering.")
+        return self.answers.pop(0)
+
+    async def check(self) -> str | None:
+        return self.ready

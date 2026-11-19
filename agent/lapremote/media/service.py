@@ -240,11 +240,14 @@ class MediaService:
         if isinstance(plan, KeySeek) and not self._keys.press(plan.key, plan.presses):
             raise ActionError("Keyboard control isn't available on this laptop.")
 
-    async def _select(self, _conn: Connection, p: MediaSelect) -> None:
-        if not any(s.id == p.session_id for s in self._backend.list_sessions()):
+    async def select(self, session_id: str) -> None:
+        if not any(s.id == session_id for s in self._backend.list_sessions()):
             raise ActionError(PLAYER_GONE)
-        self._selected = p.session_id
+        self._selected = session_id
         await self.broadcast()
+
+    async def _select(self, _conn: Connection, p: MediaSelect) -> None:
+        await self.select(p.session_id)
 
     async def _artwork_request(self, conn: Connection, p: MediaArtworkRequest) -> None:
         jpeg = self._artwork.get(p.artwork_id)

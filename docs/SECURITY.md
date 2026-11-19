@@ -44,10 +44,31 @@ down.
 
 Windows uses in-process APIs (WinRT, Core Audio, pywin32) and runs no subprocess.
 
+## AI assistant (Phase 8)
+
+- The model's answer is data only. Every action type must be in `AI_ACTION_TYPES` and every
+  payload must pass the protocol model for that type (`AI_PAYLOADS`). Shortcut, scene and player
+  ids must exist. Anything else is dropped before the phone even sees the plan.
+- Execution goes through the same services as the phone's buttons, so the same checks apply
+  (http(s)-only URLs, stored app targets, key name allowlist).
+- `power.action`, `key.text` over 200 characters and `launch.open` of an app shortcut need
+  `ai.confirm` from the same device within 60 seconds.
+- `ai.command` and `ai.confirm` are owner-only. Request text and model replies are never logged.
+- Keys for Groq and Gemini come only from environment variables. The Gemini key is sent in a
+  header, never in the URL. The prompt never includes window titles.
+- Prompt injection: text the model sees from the laptop (track titles, shortcut names) could try
+  to steer it, but it still can only pick allowlisted, validated actions, and risky ones still
+  ask the person first.
+
+## HTTPS (Phase 8)
+
+`--https` (or `https.enabled` in config) serves HTTP and the WebSocket over TLS with the
+configured cert and key, and refuses to start if either file is missing. See `docs/HTTPS.md`.
+
 ## Known limits today
 
-- Traffic is plain HTTP/WS on the local network unless HTTPS is enabled (Phase 8). Someone who can
-  sniff the Wi-Fi could read messages and the device token. Use a trusted network, or HTTPS /
-  Tailscale (documented in Phase 8).
+- Traffic is plain HTTP/WS on the local network unless HTTPS is turned on. Someone who can
+  sniff the Wi-Fi could read messages and the device token. Use a trusted network, or HTTPS
+  with mkcert or Tailscale (`docs/HTTPS.md`).
 - Windows asks whether to allow the agent through the firewall the first time it listens on the
   network. Choose **Private networks** only.

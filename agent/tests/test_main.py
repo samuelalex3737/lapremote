@@ -6,10 +6,13 @@ from typing import Any
 
 import pytest
 import uvicorn
+from fastapi.testclient import TestClient
 
 from lapremote import __main__ as entry
 from lapremote.config import Config, config_path, save_config
-from lapremote.server import PORT_ENV
+from lapremote.server import HTTPS_ENV, PORT_ENV
+
+from .wsclient import make_app
 
 
 class RunRecorder:
@@ -71,3 +74,51 @@ def test_broken_config_exits_with_friendly_message(
     assert entry.main([]) == 2
     assert "LapRemote could not start" in capsys.readouterr().err
     assert recorder.calls == []
+
+
+# ---------------------------------------------------------------- HTTPS
+
+
+def test_https_needs_cert_and_key(
+    recorder: RunRecorder, isolated_home: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv(HTTPS_ENV, raising=False)
+    assert entry.main(["--https"]) == 2
+    assert recorder.calls == []
+    assert os.environ.get(HTTPS_ENV) is None
+
+
+def test_https_passes_the_files_to_uvicorn(
+    recorder: RunRecorder, isolated_home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv(HTTPS_ENV, raising=False)
+    cert, key = tmp_path / "cert.pem", tmp_path / "key.pem"
+    cert.write_text("cert", encoding="utf-8")
+    key.write_text("key", encoding="utf-8")
+    config = Config()
+    config.https.cert, config.https.key = str(cert), str(key)
+    save_config(config, config_path())
+    assert entry.main(["--https"]) == 0
+    _, kwargs = recorder.calls[0]
+    assert kwargs["ssl_certfile"] == str(cert)
+    assert kwargs["ssl_keyfile"] == str(key)
+    assert os.environ[HTTPS_ENV] == "1"
+
+
+def test_https_problem_messages(tmp_path: Path) -> None:
+    assert entry.https_problem("", "") is not None
+    missing = entry.https_problem(str(tmp_path / "nope.pem"), str(tmp_path / "k.pem"))
+    assert missing == f"the certificate file {tmp_path / 'nope.pem'} doesn't exist."
+
+
+def test_https_env_reports_a_secure_context(
+    isolated_home: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv(HTTPS_ENV, "1")
+    app = make_app(isolated_home)
+    with TestClient(app):
+        assert app.state.agent.features().secure_context is True
+    monkeypatch.delenv(HTTPS_ENV)
+    plain = make_app(isolated_home)
+    with TestClient(plain):
+        assert plain.state.agent.features().secure_context is False

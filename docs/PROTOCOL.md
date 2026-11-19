@@ -185,6 +185,23 @@ These do not change the contract. They pin down how the contract is read.
       `currentId`.
     - Without any session API, or with nothing listed, play/pause/next/previous fall back to the
       OS media keys.
+11. **AI plans.** These fill in details the contract leaves open. No message or field changes.
+    - Each `Action.payload` is validated with the model of the client message of the same type
+      (`AI_PAYLOADS` in `protocol.py`). Two types are AI only: `wait` is `{ms}` (0 to 60000), and
+      `power.action` is `{action}` with no `confirmToken`, because the person's `ai.confirm`
+      approval replaces the hold-to-confirm token.
+    - `media.pause` with no `sessionId` pauses every player that is playing (as in scenes).
+    - Plans hold at most 12 actions. Actions that fail validation are left out of `ai.plan`, and
+      `reply` says how many were left out.
+    - `needsConfirm` is true when the plan has a `power.action`, a `key.text` longer than 200
+      characters, or a `launch.open` of an `app` shortcut. Such a plan waits up to 60 seconds for
+      `ai.confirm` from the same device. A declined plan gets no `ai.result`. An unknown or
+      expired `planId` gets `ack ok:false`.
+    - Plans without `needsConfirm` start running right after `ai.plan` is sent. `ai.result` is
+      sent once, after the last action, with one step per action. A failed step doesn't stop the
+      rest.
+    - `ai.command` can take many seconds on a laptop CPU. The agent answers other messages from
+      the same phone meanwhile.
 
 ## Canonical message list
 
@@ -268,3 +285,4 @@ scenes.state
 | 2026-11-19 | Phase 1: approved additions P1-P7, `/api/health` limited to `{ok, version, uptime}`, `artworkId` and `media.artwork`. |
 | 2026-11-19 | Phase 2: clarification 8 (input units). No contract change. |
 | 2026-11-19 | Phase 3: clarifications 9 (timestamps in ms) and 10 (media state). No contract change. |
+| 2026-11-19 | Phase 8: clarification 11 (AI plans). No contract change. |

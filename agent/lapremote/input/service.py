@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import Counter
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -22,6 +22,7 @@ from lapremote.protocol import (
     InputZoom,
     KeyPress,
     KeyText,
+    Modifier,
     OsName,
     Toast,
 )
@@ -198,15 +199,21 @@ class InputService:
         x, y = absolute_point(monitors[p.monitor], p.x, p.y)
         self._mouse.click_at(x, y, p.button)
 
-    async def _key_press(self, _conn: Connection, p: KeyPress) -> None:
+    async def press_key(self, key: str, modifiers: Sequence[Modifier] = ()) -> None:
         try:
-            self._keyboard.press(p.key, p.modifiers)
+            self._keyboard.press(key, modifiers)
         except UnsupportedKeyError as exc:
-            raise ActionError(f"The {p.key} key isn't available on this laptop.") from exc
+            raise ActionError(f"The {key} key isn't available on this laptop.") from exc
+
+    async def type_text(self, text: str) -> None:
+        # Typing up to 2000 characters takes a moment, so keep the event loop free.
+        await asyncio.to_thread(self._keyboard.type_text, text)
+
+    async def _key_press(self, _conn: Connection, p: KeyPress) -> None:
+        await self.press_key(p.key, p.modifiers)
 
     async def _key_text(self, _conn: Connection, p: KeyText) -> None:
-        # Typing up to 2000 characters takes a moment, so keep the event loop free.
-        await asyncio.to_thread(self._keyboard.type_text, p.text)
+        await self.type_text(p.text)
 
     async def _release_for(self, conn: Connection) -> None:
         held = self._held.pop(conn.conn_id, set())

@@ -13,6 +13,10 @@ export const trackpadSettingsSchema = z.object({
   tapToClick: z.boolean(),
   /** Finger pixels per wheel notch. Lower is faster. */
   scrollPxPerNotch: z.number().min(6).max(80),
+  /** Air mouse: point the phone to move the cursor (secure pages only). */
+  airMouse: z.boolean(),
+  /** Air mouse cursor pixels per degree of rotation. */
+  airSpeed: z.number().min(4).max(40),
   threeFinger: z.object({
     up: z.enum(THREE_FINGER_ACTIONS),
     down: z.enum(THREE_FINGER_ACTIONS),
@@ -28,6 +32,8 @@ export const DEFAULT_SETTINGS: TrackpadSettings = {
   naturalScroll: true,
   tapToClick: true,
   scrollPxPerNotch: 24,
+  airMouse: false,
+  airSpeed: 14,
   // Same defaults as gestures.threeFinger in ~/.lapremote/config.json.
   threeFinger: { up: 'task_view', down: 'show_desktop', left: 'prev_tab', right: 'next_tab' },
 }

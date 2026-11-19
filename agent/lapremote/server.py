@@ -24,6 +24,7 @@ from starlette.types import Scope
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from lapremote import __version__
+from lapremote.ai.providers import ChatProvider
 from lapremote.banner import render_banner
 from lapremote.config import Config, data_dir, load_config
 from lapremote.connection import Connection
@@ -53,6 +54,8 @@ mimetypes.add_type("text/javascript", ".js")
 mimetypes.add_type("font/woff2", ".woff2")
 
 PORT_ENV = "LAPREMOTE_PORT"
+# Set by `--https` so the (reloader) worker process serves the same features.
+HTTPS_ENV = "LAPREMOTE_HTTPS"
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 AUTH_TIMEOUT_SECONDS = 5.0
 CLOSE_AUTH_TIMEOUT = 4001
@@ -234,11 +237,16 @@ def create_app(  # noqa: PLR0913 - explicit knobs keep tests free of monkeypatch
     brightness_backend: BrightnessBackend | Literal["auto"] | None = "auto",
     power_backend: PowerBackend | Literal["auto"] = "auto",
     launcher: Launcher | Literal["auto"] = "auto",
+    ai_provider: ChatProvider | Literal["auto"] | None = "auto",
 ) -> FastAPI:
     # Before anything touches the screen, so coordinates are physical pixels on Windows.
     dpi_mode = enable_dpi_awareness()
     home = home or data_dir()
     config = config or load_config()
+    if os.environ.get(HTTPS_ENV) == "1" and not config.https.enabled:
+        config = config.model_copy(
+            update={"https": config.https.model_copy(update={"enabled": True})}
+        )
     setup_logging(home / "logs", console=console_log)
     agent = Agent(config, home, limits=limits)
     services = build_services(
@@ -252,6 +260,7 @@ def create_app(  # noqa: PLR0913 - explicit knobs keep tests free of monkeypatch
             brightness_backend=brightness_backend,
             power_backend=power_backend,
             launcher=launcher,
+            ai_provider=ai_provider,
         ),
     )
     log_event(log, "services_ready", input=services.input_available, dpi=dpi_mode)

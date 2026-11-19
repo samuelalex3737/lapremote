@@ -662,6 +662,23 @@ CLIENT_MESSAGES: dict[str, ClientMessage] = {
     "ping": ClientMessage(Ping, "authed", "reply"),
 }
 
+
+class AiWait(WireModel):
+    """Payload of the AI-only ``wait`` action."""
+
+    ms: int = Field(ge=0, le=60_000)
+
+
+# Payload model for each AI action. Every type except ``power.action`` and ``wait`` reuses
+# the matching client message model. ``power.action`` from the planner carries only
+# ``{action}``: the person's ``ai.confirm`` approval takes the place of the confirm token.
+AI_PAYLOADS: dict[str, type[WireModel]] = {
+    **{t: CLIENT_MESSAGES[t].payload for t in AI_ACTION_TYPES if t not in {"power.action", "wait"}},
+    "power.action": PowerPrepare,
+    "wait": AiWait,
+}
+
+
 AGENT_MESSAGES: dict[str, type[WireModel]] = {
     "ack": Ack,
     "auth.ok": AuthOk,

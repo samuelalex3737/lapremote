@@ -47,6 +47,13 @@ Development host so far: Windows 11 Home Single Language, build 26300, one 1920x
 | Scenes | 7 | Runner and socket flow tested with fakes | same | same |
 | Sleep timer (minutes, end of media, 30s fade, restore volume) | 7 | Logic tested with fakes; end to end over the socket with a short timer | same | same |
 | Brightness | 7 | Tested (real read 80% and write in 157 ms on the built-in BOE panel) | Unsupported (no public API for the built-in display) | Implemented-untested (screen-brightness-control) |
+| AI planner (Ollama qwen2.5:7b, allowlist validation, one retry, confirm for risky steps) | 8 | Tested: 26 pytest cases with a scripted model, including the 5 spec examples executed against fakes; real model planned all 5 correctly in 2 of 2 runs (planning only, `docs/reports/ai-demo.log`), 8 to 22 s per request on CPU | Implemented-untested (provider code is OS independent) | Implemented-untested |
+| AI providers Groq / Gemini | 8 | Request shapes unit-tested with a mock transport; no real call made (no keys) | same | same |
+| AI screen (chat, suggestion chips, step chips, confirm sheet) | 8 | Tested in Playwright with a scripted agent (iPhone 15 WebKit, Pixel 8 Chromium). Real phone pending Sam | same | same |
+| `--https` (uvicorn TLS with cert/key from config) | 8 | Tested: throwaway self-signed cert, `/api/health` over https, plain http refused, wss pairing reported `secureContext: true` | Implemented-untested | Implemented-untested |
+| HTTPS with mkcert / Tailscale Serve | 8 | Documented in `docs/HTTPS.md`; neither tool is installed here, so not tested | same | same |
+| Voice input (Web Speech) | 8 | Gating tested in Playwright (shown on secure pages when the browser has it, hidden on http). Speaking to a real phone pending Sam | same | same |
+| Gyro air mouse | 8 | Mapping unit-tested; Playwright: motion events move the cursor only while holding, http shows the HTTPS help. Real phone feel pending Sam | same | same |
 | Power: lock / sleep / restart / shut down with confirm tokens | 7 | Token rules tested; real actions not run on purpose (pending Sam). Note: with hibernation enabled, Windows "sleep" hibernates | Implemented-untested (pmset / System Events) | Implemented-untested (loginctl / systemctl) |
 
 Rows are added as each phase lands.

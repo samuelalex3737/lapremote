@@ -4,6 +4,27 @@ All notable changes to LapRemote. Versions follow [Semantic Versioning](https://
 
 ## [Unreleased]
 
+### Phase 8 - AI commands and secure-context features
+
+- AI assistant (More > Ask LapRemote):
+  - providers: Ollama on the laptop (default, `qwen2.5:7b` on 16 GB or more, `qwen2.5:3b` below),
+    plus optional Groq and Gemini free tiers with keys from environment variables
+  - the system prompt is generated from the protocol's action allowlist plus a short laptop summary
+    (players, foreground app, volume, brightness, timer, shortcut and scene ids)
+  - strict `{reply, actions}` JSON: unknown actions and bad payloads are dropped and counted in the
+    reply; one retry with the exact reasons when the answer is broken or has bad steps
+  - power actions, long typing and app launches wait for a confirm sheet on the phone
+  - steps run in order through the same services as the buttons; `ai.result` reports each step
+  - planning runs beside the phone's other messages, so the trackpad stays responsive
+  - phone: chat, suggestion chips that fit the laptop right now, step chips with done or failed marks
+- `--https` serves the agent over TLS with the cert and key from `config.json`. `docs/HTTPS.md`
+  covers mkcert and Tailscale Serve.
+- Voice input with Web Speech on secure pages, and a keyboard-dictation hint elsewhere.
+- Gyro air mouse (secure pages): point the phone to move the cursor while holding the clutch, with
+  a dead zone, smoothing and a speed setting. On plain http it explains how to get HTTPS.
+- Protocol clarification 11 (AI plans). No message changes.
+- `scripts/ai_smoke.py` checks the AI setup and plans sample commands without executing them.
+
 ### Phase 7 - Keyboard, launcher, scenes, timer, power
 
 - Keys tab:

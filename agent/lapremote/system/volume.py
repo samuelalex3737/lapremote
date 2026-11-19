@@ -238,23 +238,29 @@ class VolumeService:
     async def _set(self, _conn: Connection, p: VolumeSet) -> None:
         await self.set_level(p.level)
 
-    async def _step(self, _conn: Connection, p: VolumeStep) -> None:
+    async def step(self, delta: int) -> None:
         if self._backend is None:
-            if not self._keys.volume_step(p.delta):
+            if not self._keys.volume_step(delta):
                 raise ActionError("Volume control isn't available on this laptop.")
             return
         if self._state is None:
             await self.refresh(broadcast=False)
         current = self._state[0] if self._state is not None else 50
-        await self.set_level(current + p.delta)
+        await self.set_level(current + delta)
 
-    async def _mute(self, _conn: Connection, p: VolumeMute) -> None:
+    async def set_muted(self, muted: bool) -> None:
         if self._backend is None:
             if not self._keys.toggle_mute():
                 raise ActionError("Volume control isn't available on this laptop.")
             return
         try:
-            await self._backend.set_muted(p.muted)
+            await self._backend.set_muted(muted)
         except VolumeError as exc:
             raise ActionError("Couldn't change the volume.") from exc
         await self.refresh()
+
+    async def _step(self, _conn: Connection, p: VolumeStep) -> None:
+        await self.step(p.delta)
+
+    async def _mute(self, _conn: Connection, p: VolumeMute) -> None:
+        await self.set_muted(p.muted)

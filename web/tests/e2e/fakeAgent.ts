@@ -82,7 +82,11 @@ export class FakeAgent {
   scenes: { id: string }[] = structuredClone(DEFAULT_SCENES)
   timer: Record<string, unknown> = { active: false, endsAt: null, mode: null, then: null }
 
-  constructor(private readonly initial: { sessions: unknown[]; context: unknown }) {}
+  /** Scripted AI plans by request text. Unknown requests get a "can't do that" reply. */
+  aiPlans: Record<string, { reply: string; actions: { type: string; payload: Record<string, unknown> }[]; needsConfirm: boolean }> = {}
+  private planSeq = 0
+
+  constructor(private readonly initial: { sessions: unknown[]; context: unknown; ai?: boolean }) {}
 
   /** Send one binary preview frame: 8-byte big-endian header then the JPEG. */
   pushFrame(monitor = 0): number {
@@ -117,7 +121,7 @@ export class FakeAgent {
   private reply(msg: { id: string; type: string; payload: Record<string, unknown> }): void {
     switch (msg.type) {
       case 'auth.resume':
-        this.push('auth.ok', { deviceId: 'fake', token: null, role: 'owner', hostName: 'TEST-LAPTOP', os: 'windows', features: FEATURES })
+        this.push('auth.ok', { deviceId: 'fake', token: null, role: 'owner', hostName: 'TEST-LAPTOP', os: 'windows', features: this.initial.ai === true ? { ...FEATURES, ai: FEATURE } : FEATURES })
         this.push('media.state', { sessions: this.initial.sessions, currentId: 'w1', ts: Date.now() })
         this.push('volume.state', { level: 35, muted: false })
         if (this.initial.context !== null) this.push('context.state', this.initial.context)
@@ -160,6 +164,24 @@ export class FakeAgent {
         this.timer = { active: false, endsAt: null, mode: null, then: null }
         this.push('timer.state', this.timer)
         break
+      case 'ai.command': {
+        this.planSeq += 1
+        const planId = `plan-${String(this.planSeq)}`
+        const text = String(msg.payload.text)
+        const plan = this.aiPlans[text] ?? { reply: "I can't do that.", actions: [], needsConfirm: false }
+        this.push('ai.plan', { planId, ...plan })
+        if (!plan.needsConfirm && plan.actions.length > 0) {
+          this.push('ai.result', { planId, steps: plan.actions.map((a) => ({ type: a.type, ok: true, error: null })) })
+        }
+        return
+      }
+      case 'ai.confirm': {
+        this.push('ack', { id: msg.id, ok: true, error: null })
+        if (msg.payload.approve === true) {
+          this.push('ai.result', { planId: msg.payload.planId, steps: [{ type: 'power.action', ok: true, error: null }] })
+        }
+        return
+      }
       case 'power.prepare':
         this.push('power.token', { action: msg.payload.action, confirmToken: 'tok-123', expiresAt: Date.now() + 10_000 })
         return
