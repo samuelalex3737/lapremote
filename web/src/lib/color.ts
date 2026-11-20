@@ -57,15 +57,29 @@ export function contrast(a: Rgb, b: Rgb): number {
 }
 
 export const BACKGROUND: Rgb = [7, 7, 11]
+/** --color-bg in the light theme. */
+export const LIGHT_BACKGROUND: Rgb = [244, 245, 249]
+
+export type Theme = 'dark' | 'light'
 
 /**
  * A vivid accent from the artwork colour that keeps at least 4.5:1 contrast on the
  * app background (lightened until it does). Greys get a gentle default tint.
  */
-export function accentFrom(color: Rgb): Rgb {
+export function accentFrom(color: Rgb, theme: Theme = 'dark'): Rgb {
   const [h, s, l] = rgbToHsl(color)
   const saturation = s < 0.12 ? 0.35 : Math.min(Math.max(s, 0.45), 0.85)
   const hue = s < 0.12 ? 232 : h
+  if (theme === 'light') {
+    // On a light page the accent is dark enough for text and carries white labels.
+    let light = Math.min(Math.max(l, 0.3), 0.45)
+    let rgb = hslToRgb([hue, saturation, light])
+    while (contrast(rgb, LIGHT_BACKGROUND) < 4.5 && light > 0.1) {
+      light -= 0.03
+      rgb = hslToRgb([hue, saturation, light])
+    }
+    return rgb
+  }
   let light = Math.min(Math.max(l, 0.55), 0.82)
   let rgb = hslToRgb([hue, saturation, light])
   while (contrast(rgb, BACKGROUND) < 4.5 && light < 0.95) {
@@ -80,8 +94,12 @@ export function toCss([r, g, b]: Rgb, alpha = 1): string {
 }
 
 /** Background gradient behind Now Playing: the artwork colour fading into the app background. */
-export function gradientFrom(color: Rgb): string {
+export function gradientFrom(color: Rgb, theme: Theme = 'dark'): string {
   const [h, s] = rgbToHsl(color)
+  if (theme === 'light') {
+    const pale = hslToRgb([h, Math.min(s, 0.55), 0.86])
+    return `radial-gradient(120% 70% at 50% 0%, ${toCss(pale, 0.95)} 0%, ${toCss(pale, 0.4)} 45%, ${toCss(LIGHT_BACKGROUND, 0)} 80%)`
+  }
   const deep = hslToRgb([h, Math.min(s, 0.6), 0.22])
   return `radial-gradient(120% 70% at 50% 0%, ${toCss(deep, 0.95)} 0%, ${toCss(deep, 0.35)} 45%, ${toCss(BACKGROUND, 0)} 80%)`
 }

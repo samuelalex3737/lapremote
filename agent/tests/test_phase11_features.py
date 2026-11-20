@@ -649,3 +649,16 @@ def test_a_laptop_that_stops_answering_is_marked_asleep(isolated_home: Path) -> 
         return states
 
     assert asyncio.run(run()) == [True, True, True, False]
+
+
+def test_browser_tests_use_the_real_default_layouts() -> None:
+    # web/tests/e2e/defaultLayouts.ts is generated from default_layouts("windows"); it must
+    # not drift, or the phone's tests would check different buttons than the laptop sends.
+    source = Path(__file__).resolve().parents[2] / "web" / "tests" / "e2e" / "defaultLayouts.ts"
+    text = source.read_text(encoding="utf-8")
+    generated = json.loads(text[text.index("[") :])
+    expected = [
+        layout.model_dump(mode="json", by_alias=True, exclude_none=True)
+        for layout in default_layouts("windows")
+    ]
+    assert generated == expected

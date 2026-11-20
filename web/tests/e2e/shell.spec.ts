@@ -31,7 +31,7 @@ test('More: every sub-screen opens and goes back', async ({ page }, testInfo) =>
     if (name === 'Settings' || name === 'Devices') {
       await page.screenshot({ path: testInfo.outputPath(`${testInfo.project.name}-more-${name.toLowerCase()}.png`) })
     }
-    await page.getByRole('button', { name: 'Back' }).click()
+    await page.getByRole('button', { name: 'Back', exact: true }).click()
   }
 })
 

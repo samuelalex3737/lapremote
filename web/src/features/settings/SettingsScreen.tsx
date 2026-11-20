@@ -15,6 +15,10 @@ export function SettingsScreen() {
   const [confirmForget, setConfirmForget] = useState(false)
   const autoSwitch = useUi((s) => s.autoSwitch)
   const setAutoSwitch = useUi((s) => s.setAutoSwitch)
+  const lockScreen = useUi((s) => s.lockScreen)
+  const setLockScreen = useUi((s) => s.setLockScreen)
+  const theme = useUi((s) => s.theme)
+  const toggleTheme = useUi((s) => s.toggleTheme)
   if (session === null) return null
 
   return (
@@ -34,6 +38,23 @@ export function SettingsScreen() {
           description="Jump to movie, music or slide controls when the app in front changes"
           checked={autoSwitch}
           onChange={setAutoSwitch}
+        />
+        <Switch
+          label="Controls on the lock screen"
+          description="Play, pause and skip from your phone's lock screen. Plays silent audio while something is playing on the laptop."
+          checked={lockScreen}
+          onChange={setLockScreen}
+        />
+      </Card>
+      <Card className="flex flex-col gap-2">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]">Look</h2>
+        <Switch
+          label="Light mode"
+          description="Dark is the default. The sun and moon button at the top switches too."
+          checked={theme === 'light'}
+          onChange={() => {
+            toggleTheme()
+          }}
         />
       </Card>
       <Card className="flex flex-col gap-2">

@@ -13,6 +13,11 @@ runs entirely on your local Wi-Fi. No cloud, no accounts, 100% free and open sou
   hold-to-confirm.
 - **Ask LapRemote**: "pause everything", "next episode and volume 30". A local AI model
   (Ollama) turns it into the same safe actions the buttons send.
+- **Send to laptop and back**: text, links, photos and files to the laptop; the laptop's
+  clipboard to the phone.
+- **Call buttons** for Zoom, Teams and Meet, and your own **button layouts** per app.
+- **Lock-screen controls**, **several laptops** with a switcher and **Wake-on-LAN**, real
+  shortcut icons, and a **light mode** (dark is the default).
 - **Air mouse** and **voice input** when you turn on HTTPS.
 - A **tray icon** and a **desktop dashboard** on the laptop for pairing, devices and settings.
 
@@ -113,6 +118,9 @@ notes: [docs/AI.md](docs/AI.md).
 | Ask LapRemote says Ollama isn't running | Start Ollama, run `ollama pull <model>`, then reopen the app on the phone. |
 | AI answers are slow | A 7B model on a laptop CPU takes about 10 to 20 seconds. Try `qwen2.5:3b` or Groq. |
 | No mic button or air mouse | Those need HTTPS: see docs/HTTPS.md. |
+| A Microsoft Store app (Spotify, WhatsApp...) won't open | Edit the shortcut and use "Pick from the laptop's apps". Store apps can't be started from their .exe. |
+| Wake does nothing | Turn on Wake-on-LAN in the sleeping laptop's BIOS/UEFI and network adapter settings. Many laptops only wake over a network cable, not Wi-Fi. |
+| No lock-screen controls | Settings > Controls on the lock screen, then tap anywhere once (browsers only allow sound after a tap) and start something on the laptop. |
 | "An Application Control policy has blocked this file" | Windows Smart App Control is blocking an unsigned Python build. Install Python 3.12 from python.org, delete `agent/.venv`, and run `uv sync` again. |
 | `config.json` is broken | LapRemote stops and says so. Fix the file or delete it to get the defaults back. |
 | Logs | Tray > Open logs folder, or `~/.lapremote/logs/agent.log` (typed text and tokens are never logged). |

@@ -10,6 +10,14 @@ const TONES: Record<string, string> = {
 }
 
 export function ShortcutIcon({ shortcut }: { shortcut: Shortcut }) {
+  if (shortcut.image?.startsWith('data:image/png;base64,') === true) {
+    // The site's or app's own icon, made by the laptop. A light tile keeps dark logos visible.
+    return (
+      <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white p-1.5 ring-1 ring-black/5">
+        <img src={shortcut.image} alt="" aria-hidden="true" className="h-full w-full object-contain" draggable={false} />
+      </span>
+    )
+  }
   const icon = shortcut.icon ?? (shortcut.kind === 'app' ? 'app' : 'web')
   const tone = TONES[icon] ?? 'bg-[var(--color-surface-strong)] text-[var(--color-text)]'
   const props = { className: 'h-6 w-6', 'aria-hidden': true } as const

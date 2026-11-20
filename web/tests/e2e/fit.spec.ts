@@ -32,7 +32,7 @@ async function tab(page: Page, name: string) {
 
 async function more(page: Page, item: RegExp) {
   await tab(page, 'More')
-  const back = page.getByRole('button', { name: 'Back' })
+  const back = page.getByRole('button', { name: 'Back', exact: true })
   if (await back.isVisible()) await back.click()
   await page.getByRole('button', { name: item }).click()
 }
@@ -73,6 +73,9 @@ for (const size of SIZES) {
   await fits(page, 'trackpad', testInfo, size.name)
   await tab(page, 'Keys')
   await fits(page, 'keys', testInfo, size.name)
+  await page.getByRole('radio', { name: 'Buttons' }).click()
+  await fits(page, 'keys-buttons', testInfo, size.name)
+  await page.getByRole('radio', { name: 'Send' }).click()
   await tab(page, 'Launch')
   await fits(page, 'launch', testInfo, size.name)
   await tab(page, 'More')
@@ -85,5 +88,11 @@ for (const size of SIZES) {
   await fits(page, 'scenes', testInfo, size.name)
   await more(page, /^Ask LapRemote/)
   await fits(page, 'ai', testInfo, size.name)
+  await more(page, /^Send to laptop/)
+  await fits(page, 'send', testInfo, size.name)
+  await more(page, /^Layouts/)
+  await fits(page, 'layouts', testInfo, size.name)
+  await more(page, /^Laptops/)
+  await fits(page, 'laptops', testInfo, size.name)
 })
 }

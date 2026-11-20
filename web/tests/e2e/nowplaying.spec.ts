@@ -11,7 +11,7 @@ test('Netflix in focus: the banner offers movie controls with skip intro and ful
   await page.goto('/')
   const banner = page.getByText('Netflix in focus - movie controls')
   await expect(banner).toBeVisible()
-  await page.getByRole('button', { name: 'Switch' }).click()
+  await page.getByRole('button', { name: 'Switch', exact: true }).click()
   await expect(banner).toBeHidden()
   await expect(page.getByRole('radio', { name: 'Movie' })).toHaveAttribute('aria-checked', 'true')
 
@@ -55,7 +55,7 @@ test('slides mode: big next, previous, blank and an elapsed timer', async ({ pag
   })
   await agent.install(page)
   await page.goto('/')
-  await page.getByRole('button', { name: 'Switch' }).click()
+  await page.getByRole('button', { name: 'Switch', exact: true }).click()
   await page.getByRole('button', { name: 'Next slide' }).click()
   await page.getByRole('button', { name: 'Previous' }).click()
   await page.getByRole('button', { name: 'Blank screen' }).click()

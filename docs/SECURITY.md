@@ -117,6 +117,31 @@ configured cert and key, and refuses to start if either file is missing. See `do
   executable: a `HKCU\...\Run` value on Windows, a LaunchAgent plist on macOS, an XDG
   autostart entry on Linux. Nothing from a phone goes into it.
 
+## Additions after v1.0.0
+
+- **Upload** (`POST /api/upload`): owner token in headers (never the URL), the same Origin check
+  as the socket, one upload at a time per phone, a 100 MB cap enforced while streaming, a free
+  disk check, cleaned names (no folders, no reserved Windows names, no control characters), no
+  overwriting, saved only in `Downloads\LapRemote`, never opened, and marked as downloaded from
+  the internet (`Zone.Identifier`) so SmartScreen checks it if someone opens it. Names are not
+  logged.
+- **Clipboard and links**: owner-only; clipboard text is never logged (only its length); links
+  must be http(s) and open in the browser like shortcuts.
+- **Site icons**: the laptop fetches the icon of a website shortcut the owner saved. Every host,
+  including every redirect, must resolve only to public internet addresses (no LAN, loopback or
+  link-local), pages and images are capped at 512 KB, requests time out, and the image is
+  decoded and re-encoded as a new 96 px PNG. Nothing from the site is stored or served as-is. A
+  phone can't set a shortcut's image.
+- **App ids**: an app shortcut may name an installed app's id only if the laptop's Start menu
+  lists it; it opens through `shell:AppsFolder`, with no arguments.
+- **Layouts**: buttons name only allowlisted actions, and the phone runs them with the existing
+  messages, so the same checks apply.
+- **Other laptops and Wake-on-LAN**: each agent announces a random id and its network card's MAC
+  address on the local network (mDNS), so devices on the same Wi-Fi can see it. Only private or
+  link-local addresses are accepted as laptops. A wake packet can only be sent to a laptop this
+  agent has seen. Health checks to other laptops send nothing and read only `/api/health`.
+- **Lock screen**: plays a silent sound generated on the phone; nothing is downloaded.
+
 ## Residual risks and known limits
 
 - Traffic is plain HTTP/WS on the local network unless HTTPS is turned on. Someone who can

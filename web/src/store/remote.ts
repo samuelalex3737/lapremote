@@ -7,7 +7,7 @@ import type { ContextInfo } from '../lib/adaptive.ts'
 import { localCredentialStore } from '../lib/credentials.ts'
 import { detectDevice, socketUrl } from '../lib/device.ts'
 import { MediaStore, type MediaSnapshot } from '../lib/mediaStore.ts'
-import type { AgentPayload, Scene, Shortcut } from '../lib/protocol.ts'
+import type { AgentPayload, Layout, Scene, Shortcut } from '../lib/protocol.ts'
 import { RemoteClient, type Snapshot, type SocketLike } from '../lib/ws.ts'
 import { useUi } from './ui.ts'
 
@@ -53,6 +53,41 @@ export interface LaptopExtras {
   brightness: AgentPayload<'brightness.state'> | null
 }
 export const useExtras = create<LaptopExtras>(() => ({ shortcuts: null, scenes: null, timer: null, brightness: null }))
+
+/** Per-app button layouts and other LapRemote laptops on the network, as pushed by the agent. */
+export const useLayouts = create<{ layouts: Layout[] | null }>(() => ({ layouts: null }))
+client.on('layouts.state', (p) => {
+  useLayouts.setState({ layouts: p.layouts })
+})
+export type Peer = AgentPayload<'peers.state'>['peers'][number]
+export const usePeers = create<{ peers: Peer[] | null }>(() => ({ peers: null }))
+client.on('peers.state', (p) => {
+  usePeers.setState({ peers: p.peers })
+})
+
+/** Text the laptop sent to this phone (tray or dashboard), shown until the person closes it. */
+export const useIncoming = create<{ text: string | null; dismiss: () => void }>((set) => ({
+  text: null,
+  dismiss: () => {
+    set({ text: null })
+  },
+}))
+client.on('clipboard.state', (p) => {
+  // A reply to clipboard.get is handled by its caller; a push comes without asking.
+  if (!expectingClipboard) useIncoming.setState({ text: p.text })
+})
+let expectingClipboard = false
+
+/** Read the laptop clipboard (owner only). */
+export async function readLaptopClipboard(): Promise<string> {
+  expectingClipboard = true
+  try {
+    const reply = await client.request('clipboard.get', {})
+    return reply.type === 'clipboard.state' ? reply.payload.text : ''
+  } finally {
+    expectingClipboard = false
+  }
+}
 client.on('shortcuts.state', (p) => {
   useExtras.setState({ shortcuts: p.shortcuts })
 })

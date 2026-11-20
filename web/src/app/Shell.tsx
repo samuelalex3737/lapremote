@@ -1,12 +1,17 @@
+import { Moon, Sun } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { lazy, Suspense, useEffect, useRef, type ReactNode } from 'react'
 import { Backdrop } from '../features/nowplaying/Backdrop.tsx'
 import { NowPlayingTab } from '../features/nowplaying/NowPlayingTab.tsx'
-import { useConnection } from '../store/remote.ts'
+import { useConnection, useIncoming } from '../store/remote.ts'
 import { neighbourTab, useUi, type TabId } from '../store/ui.ts'
+import { copyToPhone } from '../lib/copy.ts'
+import { Button, IconButton } from '../ui/Button.tsx'
+import { Sheet } from '../ui/Sheet.tsx'
 import { Skeleton, StatusPill } from '../ui/primitives.tsx'
 import { ContextBanner } from './ContextBanner.tsx'
 import { useContextSuggestion } from './useContextSuggestion.ts'
+import { useLockScreen } from './useLockScreen.ts'
 import { TabBar } from './TabBar.tsx'
 
 const SWIPE_MIN_PX = 70
@@ -83,6 +88,48 @@ function useStatusText() {
  * the context suggestion when there is one. Keeping it to one row leaves the screen for
  * the controls.
  */
+/** Text the laptop sent from its tray or dashboard, with a button to copy it here. */
+function IncomingText() {
+  const text = useIncoming((s) => s.text)
+  const dismiss = useIncoming((s) => s.dismiss)
+  return (
+    <Sheet open={text !== null} title="From your laptop" onClose={dismiss}>
+      {text !== null && (
+        <div className="flex flex-col gap-3">
+          <p className="max-h-60 overflow-y-auto rounded-xl bg-[var(--color-bg-raised)] px-3 py-2 text-sm break-words whitespace-pre-wrap select-text">
+            {text === '' ? 'The laptop clipboard has no text.' : text}
+          </p>
+          {text !== '' && (
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={() => {
+                void copyToPhone(text).then((ok) => {
+                  useUi.getState().showToast(ok ? 'success' : 'error', ok ? 'Copied to this phone.' : 'Select the text and copy it.')
+                  if (ok) dismiss()
+                })
+              }}
+            >
+              Copy to this phone
+            </Button>
+          )}
+        </div>
+      )}
+    </Sheet>
+  )
+}
+
+function ThemeToggle() {
+  const theme = useUi((s) => s.theme)
+  const toggle = useUi((s) => s.toggleTheme)
+  const dark = theme === 'dark'
+  return (
+    <IconButton label={dark ? 'Switch to light mode' : 'Switch to dark mode'} variant="plain" onClick={toggle}>
+      {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+    </IconButton>
+  )
+}
+
 function Header() {
   const status = useStatusText()
   const suggestion = useContextSuggestion()
@@ -99,6 +146,7 @@ function Header() {
           <StatusPill tone={status.ok ? 'ok' : 'warn'}>{status.text}</StatusPill>
         )}
         {status.ok && <ContextBanner suggestion={suggestion} />}
+        <ThemeToggle />
       </div>
     </header>
   )
@@ -110,6 +158,7 @@ export function Shell() {
   const setTab = useUi((s) => s.setTab)
   const swipe = useRef<{ x: number; y: number; t: number } | null>(null)
   usePrefetchTabs()
+  useLockScreen()
 
   // Swipe left/right anywhere in the content to change tabs (not on the trackpad,
   // and not when the touch starts on a slider or other [data-no-swipe] control).
@@ -167,6 +216,7 @@ export function Shell() {
       </main>
       </div>
       <TabBar />
+      <IncomingText />
     </div>
   )
 }

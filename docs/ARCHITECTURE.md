@@ -102,6 +102,11 @@ flowchart LR
 | `agent/lapremote/tray.py` | Tray icon and menu (pystray); tray mode runs the server in a thread |
 | `agent/lapremote/autostart.py` | Start at login on Windows, macOS and Linux |
 | `agent/packaging/entry.py` | Entry point for the PyInstaller build (`scripts/build_agent.py`) |
+| `agent/lapremote/apps.py`, `win_icons.py` | Installed apps, Microsoft Store app ids, real app icons |
+| `agent/lapremote/site_icons.py` | Website icons for shortcuts, with public-address checks |
+| `agent/lapremote/clipboard.py`, `upload.py` | Send to laptop and back: clipboard, links, `POST /api/upload` |
+| `agent/lapremote/layouts.py` | Per-app button layouts, including the call layouts |
+| `agent/lapremote/peers.py` | Other LapRemote laptops (mDNS) and Wake-on-LAN |
 | `agent/lapremote/services.py` | Builds every feature service; tests inject fakes through `Overrides` |
 | `agent/lapremote/storage.py` | Atomic JSON files seeded from `shared/*.default.json` |
 | `shared/protocol.schema.json` | Normalised protocol schema both sides are tested against |

@@ -7,6 +7,8 @@ import { client, useConnection } from '../../store/remote.ts'
 import { Button } from '../../ui/Button.tsx'
 import { Card, SegmentedControl } from '../../ui/primitives.tsx'
 import { FeatureGate } from '../FeatureGate.tsx'
+import { LayoutPad } from '../layouts/LayoutPad.tsx'
+import { useUi } from '../../store/ui.ts'
 
 function press(key: KeyName, modifiers: Modifier[] = []) {
   haptic('click')
@@ -171,6 +173,8 @@ function ComboBuilder({ os }: { os: HostOs }) {
 export function KeysTab() {
   const session = useConnection((s) => s.session)
   const [mode, setMode] = useState<'send' | 'live'>('send')
+  const keysMode = useUi((s) => s.keysMode)
+  const setKeysMode = useUi((s) => s.setKeysMode)
   if (session === null) return null
   const os = session.os
   const start = START[os]
@@ -184,17 +188,49 @@ export function KeysTab() {
         </Card>
       ) : (
         <FeatureGate feature="input" title="Typing">
+          <div className={keysMode === 'buttons' ? '' : 'land:hidden'}>
+          <SegmentedControl
+            label="Keys mode"
+            options={[
+              { value: 'send', label: 'Send' },
+              { value: 'live', label: 'Live' },
+              { value: 'buttons', label: 'Buttons' },
+            ]}
+            value={keysMode === 'buttons' ? 'buttons' : mode}
+            onChange={(value) => {
+              if (value === 'buttons') {
+                setKeysMode('buttons')
+                return
+              }
+              setMode(value)
+              setKeysMode('type')
+            }}
+          />
+          </div>
+          {keysMode === 'buttons' ? (
+            <LayoutPad />
+          ) : (
           <div className="flex flex-col gap-2.5 short:gap-2 land:flex-row land:items-start land:gap-4">
             <div className={GROUP}>
+              <div className="hidden land:block">
               <SegmentedControl
-                label="Typing mode"
+                label="Keys mode"
                 options={[
                   { value: 'send', label: 'Send' },
                   { value: 'live', label: 'Live' },
+                  { value: 'buttons', label: 'Buttons' },
                 ]}
                 value={mode}
-                onChange={setMode}
+                onChange={(value) => {
+                  if (value === 'buttons') {
+                    setKeysMode('buttons')
+                    return
+                  }
+                  setMode(value)
+                  setKeysMode('type')
+                }}
               />
+              </div>
               {mode === 'send' ? <SendBox /> : <LiveBox />}
             </div>
             <div className={GROUP}>
@@ -223,6 +259,7 @@ export function KeysTab() {
               <ComboBuilder os={os} />
             </div>
           </div>
+          )}
         </FeatureGate>
       )}
     </div>

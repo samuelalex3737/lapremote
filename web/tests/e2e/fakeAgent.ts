@@ -5,6 +5,7 @@
  */
 import { readFileSync } from 'node:fs'
 import type { Page, WebSocketRoute } from '@playwright/test'
+import { DEFAULT_LAYOUTS } from './defaultLayouts.ts'
 
 export const FRAME_JPEG = readFileSync(new URL('./frame-480x270.jpg', import.meta.url))
 
@@ -81,6 +82,14 @@ export class FakeAgent {
   shortcuts: { id: string }[] = structuredClone(DEFAULT_SHORTCUTS)
   scenes: { id: string }[] = structuredClone(DEFAULT_SCENES)
   timer: Record<string, unknown> = { active: false, endsAt: null, mode: null, then: null }
+  layouts: { id: string }[] = structuredClone(DEFAULT_LAYOUTS)
+  peers: Record<string, unknown>[] = []
+  laptopClipboard = 'text on the laptop'
+  apps = [
+    { appId: 'SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify', name: 'Spotify' },
+    { appId: 'VideoLAN.VLC', name: 'VLC media player' },
+    { appId: 'Microsoft.WindowsNotepad_8wekyb3d8bbwe!App', name: 'Notepad' },
+  ]
 
   /** Scripted AI plans by request text. Unknown requests get a "can't do that" reply. */
   aiPlans: Record<string, { reply: string; actions: { type: string; payload: Record<string, unknown> }[]; needsConfirm: boolean }> = {}
@@ -129,6 +138,8 @@ export class FakeAgent {
         this.push('scenes.state', { scenes: this.scenes })
         this.push('timer.state', this.timer)
         this.push('brightness.state', { level: 70, supported: true })
+        this.push('layouts.state', { layouts: this.layouts })
+        this.push('peers.state', { peers: this.peers })
         return
       case 'ping':
         this.push('pong', { t: msg.payload.t })
@@ -163,6 +174,25 @@ export class FakeAgent {
       case 'timer.cancel':
         this.timer = { active: false, endsAt: null, mode: null, then: null }
         this.push('timer.state', this.timer)
+        break
+      case 'clipboard.set':
+        this.laptopClipboard = String(msg.payload.text)
+        break
+      case 'clipboard.get':
+        this.push('clipboard.state', { text: this.laptopClipboard, ts: Date.now() })
+        return
+      case 'apps.list':
+        this.push('apps.state', { apps: this.apps })
+        return
+      case 'layouts.save': {
+        const l = msg.payload.layout as { id: string }
+        this.layouts = [...this.layouts.filter((x) => x.id !== l.id), l]
+        this.push('layouts.state', { layouts: this.layouts })
+        break
+      }
+      case 'layouts.delete':
+        this.layouts = this.layouts.filter((x) => x.id !== msg.payload.layoutId)
+        this.push('layouts.state', { layouts: this.layouts })
         break
       case 'ai.command': {
         this.planSeq += 1

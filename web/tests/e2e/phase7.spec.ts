@@ -80,7 +80,9 @@ test('launch: open, add, open once and delete shortcuts', async ({ page }, testI
   await page.getByRole('button', { name: 'Open a website' }).click()
   await page.getByRole('dialog', { name: 'Open a website' }).getByLabel('Web address').fill('example.org')
   await page.getByRole('button', { name: 'Open once' }).click()
-  await expect.poll(() => agent.of('launch.open').map((m) => m.payload.shortcutId)).toEqual(['netflix', '_once'])
+  // A one-off link opens directly; it is never saved as a shortcut.
+  await expect.poll(() => agent.of('url.open').map((m) => m.payload.url)).toEqual(['https://example.org/'])
+  expect(agent.of('launch.open').map((m) => m.payload.shortcutId)).toEqual(['netflix'])
   // The one-off slot never shows up in the grid.
   await expect(page.getByRole('button', { name: 'example.org', exact: true })).toHaveCount(0)
 

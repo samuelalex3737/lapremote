@@ -64,6 +64,14 @@ Everything marked Tested was run on the development host: Windows 11 Home Single
 | Friendly errors: busy port, broken devices file (fails closed) | 10 | Tested (pytest) | same | same |
 | Code-split phone app (largest chunk 211 kB, was 604 kB) | 10 | Tested: Lighthouse mobile performance 99, accessibility 100, best practices 100 | same | same |
 | Real phone over Wi-Fi (feel, latency, PWA install) | all | Not tested by me: no phone is available to the build machine. Pending Sam's manual checks in each phase report | same | same |
+| Send to laptop: clipboard both ways, links, file upload | 11 | Tested: pytest (fakes and a real clipboard round trip, restored afterwards), Playwright | Implemented-untested (pbcopy/pbpaste) | Implemented-untested (wl-copy/wl-paste or xclip) |
+| Installed-app picker and Store apps by id | 11 | Tested: 171 real apps listed; a real Spotify WindowsApps path converted to its id | Implemented-untested (/Applications) | Implemented-untested (.desktop files) |
+| Real shortcut icons | 11 | Tested: real app icons (Spotify, Brave, Notepad) and site icons (GitHub, Twitch, Reddit); LAN addresses refused. Wikipedia refuses automated requests, so it keeps the letter tile | Site icons only (no app icons) | Site icons only (no app icons) |
+| Per-app layouts and call buttons | 11 | Tested: pytest and Playwright (Zoom Mute sends Alt+A). The Zoom, Teams and Meet shortcuts themselves are each app's own; a real call is pending Sam | same | same |
+| Volume indicator on the laptop | 11 | Tested on this laptop at 0, 4 and 100%: the level never changed (restored afterwards) | n/a (no change on macOS) | n/a |
+| Several laptops and Wake-on-LAN | 11 | Tested with two agents on this laptop: each found the other, a stopped one was marked asleep in 44 s, the wake packet was sent. Waking real hardware is pending Sam and depends on the laptop's BIOS and network card | Implemented-untested | Implemented-untested |
+| Lock-screen controls | 11 | Tested in Playwright with a stubbed Media Session (both engines). A real phone lock screen is pending Sam | same | same |
+| Light mode | 11 | Tested in Playwright (toggle, remembered, theme colour); contrast checked in unit tests | same | same |
 | Power: lock / sleep / restart / shut down with confirm tokens | 7 | Token rules tested; real actions not run on purpose (pending Sam). Note: with hibernation enabled, Windows "sleep" hibernates | Implemented-untested (pmset / System Events) | Implemented-untested (loginctl / systemctl) |
 
 Rows are added as each phase lands.

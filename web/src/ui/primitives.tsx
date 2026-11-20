@@ -1,5 +1,5 @@
 import { motion } from 'motion/react'
-import type { ReactNode } from 'react'
+import { useId, type ReactNode } from 'react'
 import { haptic } from '../lib/haptics.ts'
 import { springs } from './motion.ts'
 
@@ -25,7 +25,7 @@ export function Skeleton({ className = '', label }: { className?: string; label:
 
 export function EmptyState(props: { icon: ReactNode; title: string; body?: string; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-[var(--radius-card)] bg-[var(--color-surface)] px-6 py-10 text-center ring-1 ring-inset ring-[var(--color-line)]">
+    <div className="flex flex-col items-center gap-3 rounded-[var(--radius-card)] bg-[var(--color-surface)] px-6 py-10 text-center ring-1 ring-inset ring-[var(--color-line)] short:gap-2 short:py-6 land:gap-2 land:py-4">
       <span className="text-[var(--color-text-secondary)]" aria-hidden="true">
         {props.icon}
       </span>
@@ -77,6 +77,8 @@ export function SegmentedControl<T extends string>(props: {
   value: T
   onChange: (value: T) => void
 }) {
+  // Per instance, so two controls with the same label never share the sliding highlight.
+  const id = useId()
   return (
     <div
       role="radiogroup"
@@ -99,7 +101,7 @@ export function SegmentedControl<T extends string>(props: {
           >
             {active && (
               <motion.span
-                layoutId={`seg-${props.label}`}
+                layoutId={`seg-${id}`}
                 transition={springs.snappy}
                 className="absolute inset-0 -z-10 rounded-full bg-[var(--color-text)]"
               />

@@ -40,6 +40,28 @@
   --shadow-soft: 0 10px 30px -12px rgb(0 0 0 / 0.6);
 }
 
+/* Light theme: the same tokens, swapped. Contrast on #f4f5f9: text 17.4:1, secondary 7.6:1,
+   tertiary 5.2:1, success, warn and danger all above 4.5:1 (AA). */
+:root[data-theme='light'] {
+  color-scheme: light;
+  --color-bg: #f4f5f9;
+  --color-bg-raised: #ffffff;
+  --color-surface: rgb(15 18 40 / 0.045);
+  --color-surface-strong: rgb(15 18 40 / 0.085);
+  --color-glass: rgb(255 255 255 / 0.8);
+  --color-line: rgb(15 18 40 / 0.1);
+  --color-line-strong: rgb(15 18 40 / 0.2);
+  --color-text: #12131a;
+  --color-text-secondary: #4a4d5a;
+  --color-text-tertiary: #5d606d;
+  --color-accent: var(--accent, #3d4fd6);
+  --color-accent-contrast: #ffffff;
+  --color-success: #0b7a55;
+  --color-warn: #8a5a00;
+  --color-danger: #c42a45;
+  --shadow-soft: 0 10px 30px -16px rgb(15 18 40 / 0.35);
+}
+
 :root {
   color-scheme: dark;
   background-color: var(--color-bg);

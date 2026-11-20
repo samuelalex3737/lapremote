@@ -4,6 +4,33 @@ All notable changes to LapRemote. Versions follow [Semantic Versioning](https://
 
 ## [Unreleased]
 
+### New features
+
+- **Send to laptop and back** (More > Send to laptop): put text on the laptop clipboard, open a
+  link in the laptop's browser, pull the laptop's clipboard to the phone, and send photos or files
+  (saved in Downloads\LapRemote, up to 100 MB). The tray and the dashboard can send the laptop's
+  clipboard to the phone.
+- **Video call buttons**: Zoom, Microsoft Teams and Google Meet layouts (mute, camera, share,
+  raise hand, chat, leave). When a call app is in front, the header offers them.
+- **Per-app layouts** (Keys > Buttons, More > Layouts): your own buttons per app, shown
+  automatically for the app in front. VLC, Spotify and YouTube layouts are included.
+- **Lock-screen controls**: play, pause, skip and seek from the phone's lock screen, with the
+  title and artwork (Settings > Controls on the lock screen).
+- **Several laptops** (More > Laptops): other LapRemote laptops on the Wi-Fi, with Open, and
+  **Wake** for one that's asleep (Wake-on-LAN).
+- **Real icons** for your shortcuts: the website's own icon or the app's Windows icon.
+- **App picker**: add an app shortcut by picking from the laptop's installed apps.
+- **Light mode**: dark stays the default; the sun and moon button at the top switches.
+
+### Fixes
+
+- Two-finger scrolling no longer turns into zoom when the fingers start close together.
+- Changing the volume from the phone now shows the laptop's own volume indicator.
+- Microsoft Store apps (such as Spotify) open from shortcuts; old shortcuts to their .exe are
+  fixed on first use.
+- The phone's lock-screen code can no longer crash the app on browsers without MediaMetadata.
+- Two laptops with the same computer name no longer hide each other on the network.
+
 ### Windows Smart App Control
 
 - The agent's environment now prefers an installed, signed Python (`python-preference = "system"`):

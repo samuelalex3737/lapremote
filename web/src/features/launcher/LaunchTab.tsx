@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight, Globe, Pencil, Plus, Rocket, Trash2 } from 'lucide-react'
-import { useState, type SyntheticEvent } from 'react'
-import type { Shortcut } from '../../lib/protocol.ts'
-import { makeId, normaliseUrl, ONCE_ID, visibleShortcuts } from '../../lib/shortcuts.ts'
+import { useEffect, useState, type SyntheticEvent } from 'react'
+import type { AgentPayload, Shortcut } from '../../lib/protocol.ts'
+import { makeId, normaliseUrl, visibleShortcuts } from '../../lib/shortcuts.ts'
 import { RequestError } from '../../lib/ws.ts'
 import { client, useConnection, useExtras } from '../../store/remote.ts'
 import { useUi } from '../../store/ui.ts'
@@ -19,11 +19,72 @@ function toastError(e: unknown) {
   useUi.getState().showToast('error', e instanceof RequestError ? e.message : 'That did not work.')
 }
 
+type App = AgentPayload<'apps.state'>['apps'][number]
+
+/** Installed apps on the laptop to pick from, with a search box. */
+function AppPicker({ onPick }: { onPick: (app: App) => void }) {
+  const [apps, setApps] = useState<App[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
+  useEffect(() => {
+    client.request('apps.list', {}).then(
+      (reply) => {
+        setApps(reply.type === 'apps.state' ? reply.payload.apps : [])
+      },
+      (err: unknown) => {
+        setError(err instanceof RequestError ? err.message : "Couldn't list the laptop's apps.")
+      },
+    )
+  }, [])
+  if (error !== null) {
+    return (
+      <p role="alert" className="text-sm text-[var(--color-danger)]">
+        {error}
+      </p>
+    )
+  }
+  if (apps === null) return <Skeleton label="Loading the laptop's apps" className="h-40" />
+  const q = query.trim().toLowerCase()
+  const shown = (q === '' ? apps : apps.filter((a) => a.name.toLowerCase().includes(q))).slice(0, 60)
+  return (
+    <div className="flex flex-col gap-2">
+      <input
+        className={inputClass}
+        value={query}
+        placeholder="Search the laptop's apps"
+        aria-label="Search the laptop's apps"
+        autoCorrect="off"
+        onChange={(e) => {
+          setQuery(e.target.value)
+        }}
+      />
+      <ul className="flex max-h-56 flex-col overflow-y-auto rounded-[var(--radius-control)] ring-1 ring-inset ring-[var(--color-line)]" aria-label="Apps on the laptop">
+        {shown.length === 0 && <li className="px-3 py-3 text-sm text-[var(--color-text-secondary)]">No app matches.</li>}
+        {shown.map((app) => (
+          <li key={app.appId}>
+            <button
+              type="button"
+              className="flex min-h-11 w-full items-center px-3 text-left text-sm active:bg-[var(--color-surface-strong)]"
+              onClick={() => {
+                onPick(app)
+              }}
+            >
+              {app.name}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 function ShortcutForm({ initial, taken, onDone }: { initial: Shortcut | null; taken: string[]; onDone: () => void }) {
   const [name, setName] = useState(initial?.name ?? '')
   const [kind, setKind] = useState<'url' | 'app'>(initial?.kind ?? 'url')
   const [target, setTarget] = useState(initial?.kind === 'app' ? (initial.app ?? '') : (initial?.url ?? ''))
   const [error, setError] = useState<string | null>(null)
+  const [appName, setAppName] = useState<string | null>(null)
+  const [picking, setPicking] = useState(initial === null)
 
   const save = (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -43,7 +104,7 @@ function ShortcutForm({ initial, taken, onDone }: { initial: Shortcut | null; ta
       shortcut = { id, name: trimmed, kind: 'url', url, icon: initial?.icon ?? null }
     } else {
       if (target.trim() === '') {
-        setError('Enter the full path to the app on the laptop.')
+        setError('Pick an app, or enter the full path to it on the laptop.')
         return
       }
       shortcut = { id, name: trimmed, kind: 'app', app: target.trim(), icon: initial?.icon ?? null }
@@ -68,20 +129,51 @@ function ShortcutForm({ initial, taken, onDone }: { initial: Shortcut | null; ta
         value={kind}
         onChange={setKind}
       />
-      <label className="flex flex-col gap-2">
-        <span className="text-sm font-medium">{kind === 'url' ? 'Web address' : 'App path on the laptop'}</span>
-        <input
-          className={inputClass}
-          value={target}
-          inputMode={kind === 'url' ? 'url' : 'text'}
-          autoCapitalize="off"
-          autoCorrect="off"
-          placeholder={kind === 'url' ? 'netflix.com' : 'C:\\Program Files\\VideoLAN\\VLC\\vlc.exe'}
-          onChange={(e) => {
-            setTarget(e.target.value)
+      {kind === 'app' && picking ? (
+        <AppPicker
+          onPick={(app) => {
+            setTarget(app.appId)
+            setAppName(app.name)
+            if (name.trim() === '') setName(app.name.slice(0, 40))
+            setPicking(false)
           }}
         />
-      </label>
+      ) : kind === 'app' && appName !== null ? (
+        <div className="flex items-center justify-between gap-2 rounded-[var(--radius-control)] bg-[var(--color-surface)] px-3 py-2 ring-1 ring-inset ring-[var(--color-line)]">
+          <span className="min-w-0 truncate text-sm">Opens {appName}</span>
+          <Button
+            onClick={() => {
+              setPicking(true)
+            }}
+          >
+            Change
+          </Button>
+        </div>
+      ) : (
+        <label className="flex flex-col gap-2">
+          <span className="text-sm font-medium">{kind === 'url' ? 'Web address' : 'App on the laptop'}</span>
+          <input
+            className={inputClass}
+            value={target}
+            inputMode={kind === 'url' ? 'url' : 'text'}
+            autoCapitalize="off"
+            autoCorrect="off"
+            placeholder={kind === 'url' ? 'netflix.com' : 'C:\\Program Files\\VideoLAN\\VLC\\vlc.exe'}
+            onChange={(e) => {
+              setTarget(e.target.value)
+            }}
+          />
+          {kind === 'app' && (
+            <Button
+              onClick={() => {
+                setPicking(true)
+              }}
+            >
+              Pick from the laptop's apps
+            </Button>
+          )}
+        </label>
+      )}
       {error !== null && (
         <p role="alert" className="text-sm text-[var(--color-danger)]">
           {error}
@@ -104,15 +196,18 @@ function OpenUrlForm({ taken, onDone }: { taken: string[]; onDone: () => void })
       return
     }
     const host = new URL(url).hostname.replace(/^www\./, '')
-    const shortcut: Shortcut = save
-      ? { id: makeId(host, taken), name: host.slice(0, 40), kind: 'url', url }
-      : { id: ONCE_ID, name: host.slice(0, 40), kind: 'url', url }
+    const fail = (err: unknown) => {
+      setError(err instanceof RequestError ? err.message : 'That did not work.')
+    }
+    if (!save) {
+      client.request('url.open', { url }).then(onDone, fail)
+      return
+    }
+    const shortcut: Shortcut = { id: makeId(host, taken), name: host.slice(0, 40), kind: 'url', url }
     client
       .request('shortcuts.save', { shortcut })
       .then(() => client.request('launch.open', { shortcutId: shortcut.id }))
-      .then(onDone, (err: unknown) => {
-        setError(err instanceof RequestError ? err.message : 'That did not work.')
-      })
+      .then(onDone, fail)
   }
   return (
     <div className="flex flex-col gap-4">
