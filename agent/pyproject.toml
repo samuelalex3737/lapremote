@@ -1,6 +1,6 @@
 [project]
 name = "lapremote"
-version = "0.1.0"
+version = "1.0.0"
 description = "LapRemote agent - control your laptop from your phone"
 requires-python = ">=3.12,<3.13"
 license = "MIT"

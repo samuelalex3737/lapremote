@@ -200,7 +200,9 @@ class VolumeService:
     async def _poll(self) -> None:
         while True:
             await asyncio.sleep(POLL_SECONDS)
-            await self.refresh()
+            # Nobody to tell: skip the read. A phone that connects gets a fresh read first.
+            if self._agent.hub.authed():
+                await self.refresh()
 
     async def refresh(self, *, broadcast: bool = True) -> None:
         if self._backend is None:
@@ -223,6 +225,7 @@ class VolumeService:
         return VolumeState(level=state[0], muted=state[1])
 
     async def _send_state(self, conn: Connection) -> None:
+        await self.refresh(broadcast=False)
         if self._state is not None:
             await conn.send("volume.state", self._payload(self._state))
 

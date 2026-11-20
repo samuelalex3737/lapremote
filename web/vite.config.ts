@@ -61,6 +61,19 @@ export default defineConfig({
     // The agent serves the built app from its package (git-ignored).
     outDir: fileURLToPath(new URL('../agent/lapremote/static', import.meta.url)),
     emptyOutDir: true,
+    rolldownOptions: {
+      output: {
+        // Libraries change less often than app code, so they get their own cacheable chunks.
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined
+          // Module ids use forward slashes on every OS.
+          if (/\/node_modules\/(react|react-dom|scheduler)\//.test(id)) return 'react'
+          if (id.includes('motion')) return 'motion'
+          if (id.includes('zod')) return 'zod'
+          return 'vendor'
+        },
+      },
+    },
   },
   test: {
     include: ['tests/unit/**/*.test.ts'],

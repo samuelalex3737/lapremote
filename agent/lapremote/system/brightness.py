@@ -103,7 +103,9 @@ class BrightnessService:
     async def _poll(self) -> None:
         while True:
             await asyncio.sleep(POLL_SECONDS)
-            await self.refresh()
+            # Nobody to tell: skip the read. A phone that connects gets a fresh read first.
+            if self._agent.hub.authed():
+                await self.refresh()
 
     async def refresh(self, *, broadcast: bool = True) -> None:
         backend = self._backend
@@ -132,4 +134,5 @@ class BrightnessService:
         await self.set_level(p.level)
 
     async def _send(self, conn: Connection) -> None:
+        await self.refresh(broadcast=False)
         await conn.send("brightness.state", self.state())

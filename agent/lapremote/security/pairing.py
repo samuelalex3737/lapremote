@@ -19,7 +19,10 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Literal
 
+from lapremote.logging_setup import get_logger, log_event
 from lapremote.protocol import Role
+
+log = get_logger("pairing")
 
 CODE_TTL_SECONDS = 300.0
 DEVICES_FILE_VERSION = 1
@@ -145,8 +148,18 @@ class DeviceStore:
     def _load(self) -> dict[str, Device]:
         if not self._path.exists():
             return {}
-        raw = json.loads(self._path.read_text(encoding="utf-8"))
-        devices = [Device(**item) for item in raw.get("devices", [])]
+        try:
+            raw = json.loads(self._path.read_text(encoding="utf-8"))
+            devices = [Device(**item) for item in raw.get("devices", [])]
+        except (ValueError, TypeError, AttributeError) as exc:
+            # Fail closed: keep the damaged file for inspection and start with no devices,
+            # so phones pair again instead of anything being trusted by accident.
+            broken = self._path.with_name(self._path.name + ".broken")
+            self._path.replace(broken)
+            log_event(
+                log, "devices_file_broken", level=40, movedTo=str(broken), error=type(exc).__name__
+            )
+            return {}
         return {d.device_id: d for d in devices}
 
     def _save_locked(self) -> None:

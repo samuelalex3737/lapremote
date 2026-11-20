@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import os
+import socket
 import sys
 import threading
 import webbrowser
@@ -66,6 +67,22 @@ def https_problem(cert: str, key: str) -> str | None:
     return None
 
 
+def port_problem(port: int) -> str | None:
+    """A friendly reason the port can't be used, or None when it's free."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        if sys.platform == "win32":
+            # Without this, Windows lets a second process bind the same port.
+            probe.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        try:
+            probe.bind((BIND_HOST, port))
+        except OSError:
+            return (
+                f"port {port} is already in use. Is LapRemote already running? "
+                "Use --port to pick another one."
+            )
+    return None
+
+
 def tray_problem(platform: str, env: Mapping[str, str]) -> str | None:
     """Why the tray icon can't be shown here, or None when it can."""
     if platform.startswith("linux") and not (env.get("DISPLAY") or env.get("WAYLAND_DISPLAY")):
@@ -112,6 +129,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 2
         ssl = {"ssl_certfile": config.https.cert, "ssl_keyfile": config.https.key}
         os.environ[HTTPS_ENV] = "1"
+    busy = None if args.dev else port_problem(port)
+    if busy is not None:
+        print(f"LapRemote could not start: {busy}", file=sys.stderr)
+        return 2
     # The app factory runs in the (reloader) worker process, so pass the port on.
     os.environ[PORT_ENV] = str(port)
     if args.input_dry_run:

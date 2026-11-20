@@ -7,7 +7,8 @@
 2. Measure:
        uv run --project agent python scripts/measure.py preview --home C:/tmp/lr-measure --port 7795
        uv run --project agent python scripts/measure.py ping --home C:/tmp/lr-measure --port 7795
-       uv run --project agent python scripts/measure.py idle --port 7795
+       uv run --project agent python scripts/measure.py idle --port 7795 [--home C:/tmp/lr-measure]
+       uv run --project agent python scripts/measure.py moves --home C:/tmp/lr-measure --port 7795
 
 Never point this at your real ~/.lapremote: `seed` refuses to touch an existing devices.json.
 """
@@ -154,16 +155,51 @@ def measure_ping(port: int, home: Path, count: int) -> int:
     return 0
 
 
-def measure_idle(port: int, seconds: float) -> int:
+def measure_idle(port: int, seconds: float, home: Path | None) -> int:
+    """Agent CPU and memory while nothing happens. With --home, a phone stays connected."""
+    client = Client(port, home) if home is not None else None
     proc = agent_process(port)
     proc.cpu_percent(None)
     time.sleep(seconds)
     cpu = proc.cpu_percent(None)
+    if client is not None:
+        client.close()
     cores = psutil.cpu_count() or 1
+    who = "phone connected" if client is not None else "no phone"
     print(
-        f"idle {seconds:.0f}s: agent CPU {cpu:.2f}% of one core ({cpu / cores:.2f}% of all cores), "
-        f"memory {proc.memory_info().rss / 1_048_576:.1f} MB"
+        f"idle {seconds:.0f}s ({who}): agent CPU {cpu:.2f}% of one core "
+        f"({cpu / cores:.2f}% of all cores), memory {proc.memory_info().rss / 1_048_576:.1f} MB"
     )
+    return 0
+
+
+def measure_moves(port: int, home: Path, rate: int, seconds: float) -> int:
+    """Send input.move at a trackpad-like rate, then check the agent kept up.
+
+    Run the agent with --input-dry-run so the real cursor never moves. A ping sent right after
+    the burst is answered only once every earlier move was handled, so its delay shows backlog.
+    """
+    client = Client(port, home)
+    proc = agent_process(port)
+    proc.cpu_percent(None)
+    gap = 1 / rate
+    sent = 0
+    start = time.perf_counter()
+    while time.perf_counter() - start < seconds:
+        client.send("input.move", {"dx": 1.5, "dy": -0.5})
+        sent += 1
+        next_at = start + sent * gap
+        time.sleep(max(0.0, next_at - time.perf_counter()))
+    elapsed = time.perf_counter() - start
+    cpu = proc.cpu_percent(None)
+    probe = time.perf_counter()
+    client.send("ping", {"t": probe})
+    client.until("pong")
+    backlog_ms = (time.perf_counter() - probe) * 1000
+    client.close()
+    print(f"input.move: sent {sent} in {elapsed:.1f}s ({sent / elapsed:.0f}/s)")
+    print(f"  agent CPU           {cpu:.1f}% of one core")
+    print(f"  ping right after    {backlog_ms:.2f} ms (low means no backlog)")
     return 0
 
 
@@ -182,7 +218,13 @@ def main() -> int:
     g.add_argument("--home", type=Path, required=True)
     g.add_argument("--port", type=int, default=7795)
     g.add_argument("--count", type=int, default=500)
+    m = sub.add_parser("moves")
+    m.add_argument("--home", type=Path, required=True)
+    m.add_argument("--port", type=int, default=7795)
+    m.add_argument("--rate", type=int, default=120)
+    m.add_argument("--seconds", type=float, default=10.0)
     i = sub.add_parser("idle")
+    i.add_argument("--home", type=Path, help="keep a phone connected while measuring")
     i.add_argument("--port", type=int, default=7795)
     i.add_argument("--seconds", type=float, default=30)
     args = parser.parse_args()
@@ -192,7 +234,9 @@ def main() -> int:
         return measure_preview(args.port, args.home, args.seconds, args.fps, args.width)
     if args.cmd == "ping":
         return measure_ping(args.port, args.home, args.count)
-    return measure_idle(args.port, args.seconds)
+    if args.cmd == "moves":
+        return measure_moves(args.port, args.home, args.rate, args.seconds)
+    return measure_idle(args.port, args.seconds, args.home)
 
 
 if __name__ == "__main__":

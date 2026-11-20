@@ -77,5 +77,22 @@ First-time Playwright setup: `npx playwright install chromium webkit`.
 | Phase 8 (web) | action labels, suggestion chips, air mouse mapping (dead zone, direction, smoothing, long gaps); e2e: AI unavailable reason, ask by chip and text with step chips, confirm and cancel, mic and air mouse on a secure page (motion only while holding), HTTPS help on http |
 | Live AI | `scripts/ai_smoke.py demo` plans the 5 spec commands with the real model and prints the actions without running them |
 | Phase 9 (agent) | pause over the socket (control refused, ping and pong still work, toasts, saved flag), dashboard access (other machine, rebinding Host, CSP nonce, no framing), writes need the header and a local Origin, dashboard state (QR, URL, checklist, handling times, first run), revoke and role rules, autostart and settings (validation, unknown fields refused), Windows Run command quoting, macOS plist, Linux desktop entry, a real registry round trip on a scratch key, tray menu actions, tray mode serving from a thread with a fake icon |
+| Phase 10 (agent) | no polling without phones and a fresh read on connect, resume after an agent restart, broken `devices.json` fails closed, busy port message, a vanishing volume device doesn't break the socket |
 | Phase 7 (web) | live typing diff, OS shortcuts, timer maths, URL normalising and id slugs; e2e: keys, launch (open, add, open once, delete), scenes (run, build), timer (preset, countdown, cancel, end of track), power (hold to confirm, early release does nothing), brightness, quick launch |
 | Web | WS client (pairing, resume, backoff 0.5-5s, offline queue, acks, timeouts, latency, revoke), credentials storage, device naming (vitest); resume over a real socket, wrong code from the QR link, code input rules, unpaired token (Playwright, iPhone 15 + Pixel 8) |
+
+## Measurements (v1.0.0, development laptop, localhost)
+
+Run against a throwaway agent started with `--input-dry-run` (see `scripts/measure.py`).
+
+| Measure | Result |
+|---|---|
+| Ping round trip, 500 pings | p50 0.64 ms, p95 1.02 ms, max 172 ms (one outlier) |
+| `input.move` at 120/s for 10 s | all handled, agent 7.3% of one core, ping right after 0.74 ms (no backlog) |
+| `input.move` at 240/s for 10 s | all handled, agent 13.6% of one core, ping right after 0.78 ms |
+| Idle, no phone connected | 0.7% of one core, 97 MB |
+| Idle, phone connected | 4.8% of one core (0.4% of all 12 cores), 97 MB |
+| Screen preview 8 fps / 480 px | 7.87 fps, 87 KB/s (0.72 Mbit/s), agent 21.6% of one core, 113 MB |
+| Lighthouse (mobile, agent-served build) | performance 99, accessibility 100, best practices 100, SEO 63 (`robots.txt` disallows crawling on purpose) |
+
+Wi-Fi latency needs a real phone: the phone shows its round trip in the status bar.

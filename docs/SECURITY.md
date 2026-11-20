@@ -1,8 +1,33 @@
 # LapRemote security
 
 LapRemote lets a phone drive a laptop's mouse, keyboard and media, so the agent treats every
-message as untrusted. This document lists what is implemented today. Phase 10 adds the full threat
-model review and the residual-risk list.
+message as untrusted. This document has the threat model, every mitigation, the list of programs
+the agent can start, and the risks that remain.
+
+## Threat model
+
+**What we protect:** control of the laptop (input, keys, apps, power), what's on the screen
+(preview), what's playing, the device tokens, and the person's typed text and AI requests.
+
+**Trust boundaries:** the Wi-Fi network, the phone's browser, other websites open on the phone
+or the laptop, the laptop's own browser, the AI model's output, and files under `~/.lapremote`.
+
+| Threat | Who | Mitigation | Residual risk |
+|---|---|---|---|
+| Someone on the same Wi-Fi takes control | Another device on the network | Pairing needs the 6-digit code shown only on the laptop (5 min, single use, 5 tries/min/IP). Every message after that needs a device token. | Low. Someone who can see the laptop screen can pair while a code is shown; the owner sees new devices in the dashboard and can remove them. |
+| Guessing or brute-forcing the code | Network attacker | 1,000,000 codes, 5 attempts/min/IP, single use, 5 minute life | Very low |
+| Stolen token | Someone with the phone, or sniffing plain http | Tokens are 32 random bytes, stored only as SHA-256 on the laptop, revocable from the phone or the dashboard | On plain http a Wi-Fi sniffer can read the token. Use HTTPS on untrusted networks. |
+| A website drives the agent (CSRF / cross-site WebSocket) | Any page open on the phone or laptop | Origin check on `/ws`; dashboard writes need a custom header plus a localhost Origin; no CORS is allowed | Low |
+| DNS rebinding to the dashboard | A website on the laptop | Dashboard requires a loopback client and a localhost `Host` header | Low |
+| Remote code execution | Phone, AI model | No message carries a command. Actions come from fixed allowlists. App shortcuts are validated paths with no arguments. URLs must be http(s). No shell anywhere. | Low |
+| AI prompt injection or a misbehaving model | Track titles, shortcut names, the model itself | Model output is data only, checked against `AI_ACTION_TYPES` and the protocol models. Ids must exist. Risky steps ask the person first. | A model can still pick the wrong allowed action (for example pause instead of play). |
+| Guest overreach | A guest phone | Role table in the router; clicks, scrolling, keys, preview, power, AI and device management are owner-only | Guests can move the pointer and control media and volume, by design |
+| Accidental power actions | Owner | Hold-to-confirm plus a 10 s single-use, action-bound token; AI power steps need a confirm sheet | Low |
+| Flooding or huge messages | Any connected socket | 300 msg/s, 10 key.text/s, 256 KB frames, 5 s auth deadline, validation never crashes the socket | A flood from a paired phone can make that phone's own input laggy |
+| Leaking secrets in logs | Anyone reading logs | Tokens, codes, typed text and AI text are never logged; only lengths and types | Window titles appear in context messages to paired phones, not in logs |
+| Screen exposure | A paired guest, a sniffer | Preview is owner-only; frames are never stored; on plain http frames can be sniffed | Use HTTPS for privacy on shared networks |
+| Tampered data files | Malware already on the laptop | Files are written atomically; a broken `devices.json` is moved aside and the agent fails closed (no devices); a broken `config.json` stops the agent with a clear message | Malware with the person's account can do anything LapRemote can, by definition |
+| Supply chain | Dependencies | Locked with `uv.lock` and `package-lock.json`; no runtime downloads | Normal open-source dependency risk |
 
 ## Implemented (Phase 1)
 
@@ -24,7 +49,11 @@ model review and the residual-risk list.
 | Screen preview | Owner-only (`preview.*`, `input.absclick`), at most 2 frames in flight per phone, and the stream stops the moment the phone disconnects. Frames are never written to disk or logged. |
 | Static files | Served by Starlette `StaticFiles` from the package folder only. Path traversal is tested. |
 
-## Subprocess calls (Phase 3)
+## Subprocess calls
+
+Audited in Phase 10 by searching the agent for every `subprocess`, `create_subprocess_exec`,
+`os.startfile`, `os.system`, `shell=True`, `eval`, `exec` and `webbrowser.open`. Every hit is in
+this table, none uses a shell, and there is no `eval` or `exec`.
 
 The agent starts external programs only with fixed executables found by `shutil.which` and fixed
 arguments. No argument ever contains text from the phone:
@@ -37,6 +66,7 @@ arguments. No argument ever contains text from the phone:
 | `system/context.py` | `xdotool` (Linux X11) | `getactivewindow getwindowname` / `getwindowpid` only |
 | `shortcuts.py` | the preferred browser (found at a fixed install path or by `which`), `/usr/bin/open`, `gio`, or a stored app | one argument: an http(s) URL that has already been validated, or a stored app path or bundle id validated when it was saved (must exist and be an app type). No shell and no extra arguments. On Windows apps start with `os.startfile`. |
 | `tray.py` | `/usr/bin/open` (macOS), `xdg-open` (Linux); `os.startfile` on Windows | one argument: LapRemote's own logs folder |
+| `tray.py`, `__main__.py` | the default browser via `webbrowser.open` | the fixed local dashboard URL `http://127.0.0.1:<port>/desktop` |
 | `system/power.py` | `shutdown` (Windows), `pmset` / `osascript` (macOS), `loginctl` / `systemctl` (Linux) | fixed arguments chosen from the action name |
 
 Power actions also need a single-use, action-bound confirm token that lives for 10 seconds
@@ -87,10 +117,15 @@ configured cert and key, and refuses to start if either file is missing. See `do
   executable: a `HKCU\...\Run` value on Windows, a LaunchAgent plist on macOS, an XDG
   autostart entry on Linux. Nothing from a phone goes into it.
 
-## Known limits today
+## Residual risks and known limits
 
 - Traffic is plain HTTP/WS on the local network unless HTTPS is turned on. Someone who can
   sniff the Wi-Fi could read messages and the device token. Use a trusted network, or HTTPS
   with mkcert or Tailscale (`docs/HTTPS.md`).
 - Windows asks whether to allow the agent through the firewall the first time it listens on the
   network. Choose **Private networks** only.
+- The packaged app is not code-signed (signing costs money), so Windows SmartScreen may warn
+  on first run.
+- Pausing remote control doesn't stop a sleep timer or an AI plan that has already started.
+- The air mouse and voice input need HTTPS. The mkcert and Tailscale setups are documented but
+  not tested here.

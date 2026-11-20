@@ -1,19 +1,26 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { useRef, type ReactNode } from 'react'
-import { KeysTab } from '../features/keyboard/KeysTab.tsx'
+import { lazy, Suspense, useEffect, useRef, type ReactNode } from 'react'
 import { Backdrop } from '../features/nowplaying/Backdrop.tsx'
-import { LaunchTab } from '../features/launcher/LaunchTab.tsx'
-import { MoreTab } from '../features/more/MoreTab.tsx'
 import { NowPlayingTab } from '../features/nowplaying/NowPlayingTab.tsx'
-import { TrackpadTab } from '../features/trackpad/TrackpadTab.tsx'
 import { useConnection } from '../store/remote.ts'
 import { neighbourTab, useUi, type TabId } from '../store/ui.ts'
-import { StatusPill } from '../ui/primitives.tsx'
+import { Skeleton, StatusPill } from '../ui/primitives.tsx'
 import { ContextBanner } from './ContextBanner.tsx'
 import { TabBar } from './TabBar.tsx'
 
 const SWIPE_MIN_PX = 70
 const SWIPE_MAX_MS = 500
+
+// Now Playing ships in the main bundle; the other tabs load on demand and are
+// prefetched once the app is idle, so switching tabs stays instant.
+const loadTrackpad = () => import('../features/trackpad/TrackpadTab.tsx')
+const loadKeys = () => import('../features/keyboard/KeysTab.tsx')
+const loadLaunch = () => import('../features/launcher/LaunchTab.tsx')
+const loadMore = () => import('../features/more/MoreTab.tsx')
+const TrackpadTab = lazy(() => loadTrackpad().then((m) => ({ default: m.TrackpadTab })))
+const KeysTab = lazy(() => loadKeys().then((m) => ({ default: m.KeysTab })))
+const LaunchTab = lazy(() => loadLaunch().then((m) => ({ default: m.LaunchTab })))
+const MoreTab = lazy(() => loadMore().then((m) => ({ default: m.MoreTab })))
 
 const TABS: Record<TabId, () => ReactNode> = {
   now: () => <NowPlayingTab />,
@@ -21,6 +28,33 @@ const TABS: Record<TabId, () => ReactNode> = {
   keys: () => <KeysTab />,
   launch: () => <LaunchTab />,
   more: () => <MoreTab />,
+}
+
+function usePrefetchTabs() {
+  useEffect(() => {
+    const prefetch = () => {
+      void Promise.all([loadTrackpad(), loadKeys(), loadLaunch(), loadMore()])
+    }
+    if ('requestIdleCallback' in window) {
+      const id = window.requestIdleCallback(prefetch, { timeout: 2000 })
+      return () => {
+        window.cancelIdleCallback(id)
+      }
+    }
+    const timer = setTimeout(prefetch, 500)
+    return () => {
+      clearTimeout(timer)
+    }
+  }, [])
+}
+
+function TabFallback() {
+  return (
+    <div className="flex flex-col gap-4 pt-2">
+      <Skeleton label="Loading" className="h-12 w-full" />
+      <Skeleton label="Loading" className="h-64 w-full" />
+    </div>
+  )
 }
 
 function ConnectionPill() {
@@ -60,6 +94,7 @@ export function Shell() {
   const direction = useUi((s) => s.direction)
   const setTab = useUi((s) => s.setTab)
   const swipe = useRef<{ x: number; y: number; t: number } | null>(null)
+  usePrefetchTabs()
 
   // Swipe left/right anywhere in the content to change tabs (not on the trackpad,
   // and not when the touch starts on a slider or other [data-no-swipe] control).
@@ -118,7 +153,7 @@ export function Shell() {
             transition={{ type: 'spring', stiffness: 420, damping: 40 }}
             className="absolute inset-0 flex touch-pan-y flex-col overflow-y-auto px-4 pb-4"
           >
-            {TABS[tab]()}
+            <Suspense fallback={<TabFallback />}>{TABS[tab]()}</Suspense>
           </motion.div>
         </AnimatePresence>
       </main>

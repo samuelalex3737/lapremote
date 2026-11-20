@@ -285,7 +285,9 @@ class ContextService:
     async def _loop(self) -> None:
         while True:
             await asyncio.sleep(self._interval)
-            await self.poll_once()
+            # Nobody to tell: skip the read. A phone that connects gets a fresh read first.
+            if self._agent.hub.authed():
+                await self.poll_once()
 
     async def poll_once(self, *, broadcast: bool = True) -> None:
         reader = self._reader
@@ -306,5 +308,6 @@ class ContextService:
             await self._agent.hub.broadcast("context.state", to_state(info))
 
     async def _send(self, conn: Connection) -> None:
+        await self.poll_once(broadcast=False)
         if self._last is not None:
             await conn.send("context.state", to_state(self._last))

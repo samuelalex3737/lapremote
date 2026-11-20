@@ -29,6 +29,8 @@ def recorder(monkeypatch: pytest.MonkeyPatch) -> RunRecorder:
     monkeypatch.setattr(uvicorn, "run", rec)
     # Never show a real tray icon (or start a real server thread) from tests.
     monkeypatch.setattr(entry, "tray_problem", lambda _platform, _env: "tests")
+    # Don't depend on whether a real agent is using the port on this machine.
+    monkeypatch.setattr(entry, "port_problem", lambda _port: None)
     monkeypatch.delenv(PORT_ENV, raising=False)
     return rec
 

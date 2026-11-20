@@ -4,6 +4,24 @@ All notable changes to LapRemote. Versions follow [Semantic Versioning](https://
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-20
+
+First complete release. Tested on Windows 11; macOS and Linux are implemented but untested (see
+docs/PLATFORM_MATRIX.md). Real-phone checks are listed in each phase report.
+
+### Phase 10 - Hardening, measurements and docs
+
+- Idle cost: volume, foreground-app and brightness polling pause while no phone is connected, and a
+  phone gets a fresh read when it connects. Idle CPU with no phone went from 4.0% to 0.7% of one core.
+- Phone app split into chunks: the tabs other than Now Playing load on demand and are prefetched
+  when the app is idle; libraries get their own cacheable chunks. Largest chunk 211 kB (was 604 kB).
+- A busy port gives a clear message ("port 7777 is already in use. Is LapRemote already running?").
+- A broken `devices.json` is moved aside and the agent starts with no devices (fails closed).
+- `scripts/measure.py`: `moves` (input rate and backlog) and `idle --home` (with a phone connected).
+- SECURITY.md: threat model, audited list of every program the agent can start, residual risks.
+- Full README (install, run and pair, HTTPS, AI, troubleshooting, roadmap) and docs/DEMO_SCRIPT.md.
+- Measurements recorded in docs/TESTING.md.
+
 ### Phase 9 - Tray, desktop dashboard, start at login and packaging
 
 - Tray icon (pystray) with Pair a phone, Devices, Pause remote control, Open dashboard, Start at

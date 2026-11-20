@@ -3,7 +3,7 @@
 Legend: **Tested** = run and verified on that OS. **Implemented-untested** = code exists but has
 not been run on that OS. **Unsupported** = will not work, with the reason.
 
-Development host so far: Windows 11 Home Single Language, build 26300, one 1920x1080 display at
+Everything marked Tested was run on the development host: Windows 11 Home Single Language, build 26300, one 1920x1080 display at
 125% scaling, Python 3.12.16, Node 26.13.0.
 
 | Feature | Phase | Windows | macOS | Linux |
@@ -59,6 +59,11 @@ Development host so far: Windows 11 Home Single Language, build 26300, one 1920x
 | Tray icon (pystray) | 9 | Tested: menu actions in pytest, tray mode with a server thread in pytest (fake icon), and a real tray-mode run that served `/api/health`. Clicking the real menu: pending Sam | Implemented-untested (pystray darwin backend) | Implemented-untested (needs an AppIndicator or X11 tray; falls back to no tray without a desktop session) |
 | Start at login | 9 | Tested: command quoting with a fake registry, plus a real registry round trip on a scratch key. The real Run key was not written | Implemented-untested (LaunchAgent plist, contents unit-tested) | Implemented-untested (XDG autostart entry, contents unit-tested) |
 | First-run guide | 9 | Tested: tray mode opens the dashboard when no phone is paired (pytest); guide shown while there are no devices | same | same |
+| Packaged app (PyInstaller one-folder, windowed) | 9 | Tested: built, started from a throwaway home, served the remote and the dashboard, every feature reported ready, 500 pings p50 1.35 ms (localhost). Unsigned | Implemented-untested (`build_agent.py` has the options) | Implemented-untested |
+| Idle cost: no polling while no phone is connected | 10 | Tested: 0.7% of one core with no phone (was 4.0%), 4.8% with a phone connected, 97 MB | Implemented-untested | Implemented-untested |
+| Friendly errors: busy port, broken devices file (fails closed) | 10 | Tested (pytest) | same | same |
+| Code-split phone app (largest chunk 211 kB, was 604 kB) | 10 | Tested: Lighthouse mobile performance 99, accessibility 100, best practices 100 | same | same |
+| Real phone over Wi-Fi (feel, latency, PWA install) | all | Not tested by me: no phone is available to the build machine. Pending Sam's manual checks in each phase report | same | same |
 | Power: lock / sleep / restart / shut down with confirm tokens | 7 | Token rules tested; real actions not run on purpose (pending Sam). Note: with hibernation enabled, Windows "sleep" hibernates | Implemented-untested (pmset / System Events) | Implemented-untested (loginctl / systemctl) |
 
 Rows are added as each phase lands.

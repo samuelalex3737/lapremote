@@ -105,8 +105,10 @@ class FakeVolume:
         self.muted = muted
         self.broken = False
         self.sets: list[int] = []
+        self.reads = 0
 
     async def get(self) -> tuple[int, bool]:
+        self.reads += 1
         if self.broken:
             raise VolumeError("device gone")
         return self.level, self.muted
