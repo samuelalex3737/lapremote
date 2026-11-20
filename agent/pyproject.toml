@@ -16,6 +16,7 @@ dependencies = [
     "pynput>=1.8.2",
     "pyobjc-framework-cocoa>=13.0 ; sys_platform == 'darwin'",
     "pyobjc-framework-quartz>=13.0 ; sys_platform == 'darwin'",
+    "pystray>=0.19.5",
     "pywin32>=312 ; sys_platform == 'win32'",
     "qrcode>=8.2",
     "screen-brightness-control>=0.27.2 ; sys_platform != 'darwin'",
@@ -40,6 +41,7 @@ packages = ["lapremote"]
 [dependency-groups]
 dev = [
     "mypy>=2.4.1",
+    "pyinstaller>=6.22.3",
     "pytest>=9.2.0",
     "pytest-asyncio>=1.5.0",
     "ruff>=0.17.5",
@@ -86,8 +88,8 @@ plugins = ["pydantic.mypy"]
 files = ["lapremote", "tests", "../scripts"]
 
 [[tool.mypy.overrides]]
-# No type information is published for these COM wrappers.
-module = ["pycaw.*", "comtypes.*", "screen_brightness_control.*"]
+# No type information is published for these packages.
+module = ["pycaw.*", "comtypes.*", "screen_brightness_control.*", "pystray.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

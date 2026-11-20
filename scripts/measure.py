@@ -29,6 +29,7 @@ from websockets.sync.client import ClientConnection, connect
 from websockets.typing import Origin
 
 DEVICE_ID = "measure0000000001"
+PING_GAP_SECONDS = 0.005
 TOKEN_FILE = "measure-token.txt"  # noqa: S105 - a file name, not a secret
 
 
@@ -143,6 +144,8 @@ def measure_ping(port: int, home: Path, count: int) -> int:
         client.send("ping", {"t": sent})
         client.until("pong")
         rtts.append((time.perf_counter() - sent) * 1000)
+        # Stay well under the agent's 300 messages/s limit, like a real phone.
+        time.sleep(PING_GAP_SECONDS)
     client.close()
     rtts.sort()
     p50 = rtts[len(rtts) // 2]

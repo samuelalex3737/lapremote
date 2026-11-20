@@ -54,6 +54,11 @@ Development host so far: Windows 11 Home Single Language, build 26300, one 1920x
 | HTTPS with mkcert / Tailscale Serve | 8 | Documented in `docs/HTTPS.md`; neither tool is installed here, so not tested | same | same |
 | Voice input (Web Speech) | 8 | Gating tested in Playwright (shown on secure pages when the browser has it, hidden on http). Speaking to a real phone pending Sam | same | same |
 | Gyro air mouse | 8 | Mapping unit-tested; Playwright: motion events move the cursor only while holding, http shows the HTTPS help. Real phone feel pending Sam | same | same |
+| Pause remote control | 9 | Tested (pytest over the socket; real dashboard click on a throwaway agent showed the paused banner) | same | same |
+| Desktop dashboard `/desktop` (QR, devices, handling time, checklist, settings) | 9 | Tested: API and access rules in pytest; real page rendered in a browser on a throwaway agent with no console errors | Implemented-untested | Implemented-untested |
+| Tray icon (pystray) | 9 | Tested: menu actions in pytest, tray mode with a server thread in pytest (fake icon), and a real tray-mode run that served `/api/health`. Clicking the real menu: pending Sam | Implemented-untested (pystray darwin backend) | Implemented-untested (needs an AppIndicator or X11 tray; falls back to no tray without a desktop session) |
+| Start at login | 9 | Tested: command quoting with a fake registry, plus a real registry round trip on a scratch key. The real Run key was not written | Implemented-untested (LaunchAgent plist, contents unit-tested) | Implemented-untested (XDG autostart entry, contents unit-tested) |
+| First-run guide | 9 | Tested: tray mode opens the dashboard when no phone is paired (pytest); guide shown while there are no devices | same | same |
 | Power: lock / sleep / restart / shut down with confirm tokens | 7 | Token rules tested; real actions not run on purpose (pending Sam). Note: with hibernation enabled, Windows "sleep" hibernates | Implemented-untested (pmset / System Events) | Implemented-untested (loginctl / systemctl) |
 
 Rows are added as each phase lands.

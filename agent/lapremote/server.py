@@ -25,10 +25,12 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from lapremote import __version__
 from lapremote.ai.providers import ChatProvider
+from lapremote.autostart import Autostart, create_autostart
 from lapremote.banner import render_banner
 from lapremote.config import Config, data_dir, load_config
 from lapremote.connection import Connection
 from lapremote.core import Agent
+from lapremote.desktop import DesktopContext, register_desktop
 from lapremote.discovery import Advertiser
 from lapremote.input.service import InputDevices
 from lapremote.logging_setup import get_logger, log_event, setup_logging
@@ -238,6 +240,7 @@ def create_app(  # noqa: PLR0913 - explicit knobs keep tests free of monkeypatch
     power_backend: PowerBackend | Literal["auto"] = "auto",
     launcher: Launcher | Literal["auto"] = "auto",
     ai_provider: ChatProvider | Literal["auto"] | None = "auto",
+    autostart: Autostart | Literal["auto"] | None = "auto",
 ) -> FastAPI:
     # Before anything touches the screen, so coordinates are physical pixels on Windows.
     dpi_mode = enable_dpi_awareness()
@@ -296,6 +299,14 @@ def create_app(  # noqa: PLR0913 - explicit knobs keep tests free of monkeypatch
     @app.websocket("/ws")
     async def websocket_endpoint(ws: WebSocket) -> None:
         await serve_socket(agent, ws, opts.auth_timeout)
+
+    app.state.desktop = DesktopContext(
+        agent=agent,
+        services=services,
+        autostart=create_autostart(agent.os) if autostart == "auto" else autostart,
+        port=opts.port,
+    )
+    register_desktop(app, app.state.desktop)
 
     static_root = static_dir or STATIC_DIR
     if (static_root / "index.html").is_file():

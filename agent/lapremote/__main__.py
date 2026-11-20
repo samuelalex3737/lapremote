@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import os
 import sys
-from collections.abc import Sequence
+import threading
+import webbrowser
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 import uvicorn
 
@@ -15,6 +19,11 @@ from lapremote.config import ConfigError, load_config
 from lapremote.protocol import MAX_MESSAGE_BYTES
 from lapremote.server import HTTPS_ENV, PORT_ENV
 from lapremote.services import INPUT_DRY_RUN_ENV
+
+if TYPE_CHECKING:
+    from fastapi import FastAPI
+
+    from lapremote.tray import TrayController
 
 # Listen on every interface so phones on the same Wi-Fi can connect. Every
 # message except pairing requires a device token.
@@ -35,6 +44,11 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="serve over HTTPS with the cert and key set in config.json (see docs/HTTPS.md)",
     )
+    parser.add_argument(
+        "--no-tray",
+        action="store_true",
+        help="run without the system tray icon (headless use, servers, tests)",
+    )
     parser.add_argument("--version", action="version", version=f"lapremote {__version__}")
     args = parser.parse_args(argv)
     if args.port is not None and not 1024 <= args.port <= 65535:
@@ -52,6 +66,25 @@ def https_problem(cert: str, key: str) -> str | None:
     return None
 
 
+def tray_problem(platform: str, env: Mapping[str, str]) -> str | None:
+    """Why the tray icon can't be shown here, or None when it can."""
+    if platform.startswith("linux") and not (env.get("DISPLAY") or env.get("WAYLAND_DISPLAY")):
+        return "no desktop session"
+    try:
+        import pystray  # noqa: F401, PLC0415 - only checks that a tray backend loads
+    except Exception as exc:
+        return f"tray unavailable ({type(exc).__name__})"
+    return None
+
+
+def _ensure_streams() -> None:
+    # A windowed (no console) build has no stdout or stderr at all.
+    if sys.stdout is None:
+        sys.stdout = Path(os.devnull).open("w", encoding="utf-8")  # noqa: SIM115 - process lifetime
+    if sys.stderr is None:
+        sys.stderr = Path(os.devnull).open("w", encoding="utf-8")  # noqa: SIM115
+
+
 def _utf8_stdio() -> None:
     # The QR banner uses block characters. Piped output on Windows defaults to cp1252.
     for stream in (sys.stdout, sys.stderr):
@@ -61,6 +94,7 @@ def _utf8_stdio() -> None:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    _ensure_streams()
     args = parse_args(argv)
     _utf8_stdio()
     try:
@@ -82,6 +116,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     os.environ[PORT_ENV] = str(port)
     if args.input_dry_run:
         os.environ[INPUT_DRY_RUN_ENV] = "1"
+    if not args.dev and not args.no_tray:
+        problem = tray_problem(sys.platform, os.environ)
+        if problem is None:
+            return run_with_tray(port, ssl)
+        print(f"Running without a tray icon: {problem}.", file=sys.stderr)
     package_dir = Path(__file__).resolve().parent
     uvicorn.run(
         "lapremote.server:create_app",
@@ -97,6 +136,64 @@ def main(argv: Sequence[str] | None = None) -> int:
         **ssl,  # type: ignore[arg-type]
     )
     return 0
+
+
+def run_with_tray(
+    port: int,
+    ssl: dict[str, str],
+    *,
+    make_app: Callable[[], FastAPI] | None = None,
+    make_icon: Callable[[TrayController], Any] | None = None,
+    open_url: Callable[[str], object] = webbrowser.open,
+) -> int:
+    """Serve in a background thread and show the tray icon on this (main) thread."""
+    from lapremote.server import create_app  # noqa: PLC0415 - heavy, only needed here
+    from lapremote.tray import TrayController, build_icon  # noqa: PLC0415
+
+    app = (make_app or create_app)()
+    agent = app.state.agent
+    server = uvicorn.Server(
+        uvicorn.Config(
+            app,
+            host=BIND_HOST,
+            port=port,
+            access_log=False,
+            ws_max_size=MAX_MESSAGE_BYTES,
+            log_level="warning",
+            **ssl,  # type: ignore[arg-type]
+        )
+    )
+    icon_ref: list[Any] = []
+
+    def stop() -> None:
+        server.should_exit = True
+        for icon in icon_ref:
+            icon.stop()
+
+    ctl = TrayController(agent, port, app.state.desktop.autostart, stop, open_url=open_url)
+
+    async def remember_loop() -> None:
+        ctl.loop = asyncio.get_running_loop()
+        if not agent.devices.list():
+            # First run: open the dashboard with the welcome guide and the QR code.
+            open_url(ctl.dashboard_url())
+
+    agent.on_startup.append(remember_loop)
+    thread = threading.Thread(target=server.run, name="lapremote-server", daemon=True)
+    thread.start()
+    icon = (make_icon or build_icon)(ctl)
+    icon_ref.append(icon)
+
+    def watch_server() -> None:
+        # If the server stops on its own (port taken, crash), close the tray too.
+        thread.join()
+        icon.stop()
+
+    threading.Thread(target=watch_server, name="lapremote-watch", daemon=True).start()
+    icon.run()
+    server.should_exit = True
+    thread.join(timeout=10)
+    return 0 if server.started else 1
 
 
 if __name__ == "__main__":

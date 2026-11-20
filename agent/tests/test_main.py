@@ -27,6 +27,8 @@ class RunRecorder:
 def recorder(monkeypatch: pytest.MonkeyPatch) -> RunRecorder:
     rec = RunRecorder()
     monkeypatch.setattr(uvicorn, "run", rec)
+    # Never show a real tray icon (or start a real server thread) from tests.
+    monkeypatch.setattr(entry, "tray_problem", lambda _platform, _env: "tests")
     monkeypatch.delenv(PORT_ENV, raising=False)
     return rec
 

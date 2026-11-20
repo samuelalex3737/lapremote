@@ -14,6 +14,7 @@ from fastapi.testclient import TestClient
 from starlette.testclient import WebSocketTestSession
 
 from lapremote.ai.providers import ChatProvider
+from lapremote.autostart import Autostart
 from lapremote.config import Config
 from lapremote.core import Agent
 from lapremote.input.service import InputDevices, detect_input_devices
@@ -27,7 +28,7 @@ from lapremote.system.context import ForegroundReader
 from lapremote.system.power import PowerBackend
 from lapremote.system.volume import VolumeBackend
 
-from .fakes import FakeLauncher, FakePower, FakeVolume
+from .fakes import FakeAutostart, FakeLauncher, FakePower, FakeVolume
 
 ORIGIN = "http://testserver"
 
@@ -47,6 +48,7 @@ def make_app(
     power_backend: PowerBackend | None = None,
     launcher: Launcher | None = None,
     ai_provider: ChatProvider | None = None,
+    autostart: Autostart | None = None,
 ) -> FastAPI:
     # Never inject real input from tests: default to the dry-run backend.
     devices = input_devices or detect_input_devices("windows", None, dry_run=True)
@@ -74,6 +76,8 @@ def make_app(
         launcher=launcher or FakeLauncher(),
         # Never a real AI model from tests: off unless a scripted provider is passed.
         ai_provider=ai_provider,
+        # Never the real login items from tests.
+        autostart=autostart or FakeAutostart(),
     )
 
 

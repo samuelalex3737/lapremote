@@ -180,3 +180,19 @@ class ScriptedProvider:
 
     async def check(self) -> str | None:
         return self.ready
+
+
+class FakeAutostart:
+    """Start-at-login that only remembers a flag, so tests never touch the registry."""
+
+    def __init__(self, enabled: bool = False) -> None:
+        self.enabled = enabled
+
+    def is_enabled(self) -> bool:
+        return self.enabled
+
+    def enable(self) -> None:
+        self.enabled = True
+
+    def disable(self) -> None:
+        self.enabled = False

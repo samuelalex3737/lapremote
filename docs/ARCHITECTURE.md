@@ -98,6 +98,10 @@ flowchart LR
 | `agent/lapremote/shortcuts.py`, `scenes.py`, `timer.py` | Launcher, scenes, sleep timer |
 | `agent/lapremote/actions.py` | One facade for actions run by scenes, the timer and the AI |
 | `agent/lapremote/ai/` | Chat providers (Ollama, Groq, Gemini), the planner (prompt, validation, retry) and the AI service (plan, confirm, run) |
+| `agent/lapremote/desktop.py`, `desktop_page.py`, `assets/dashboard.html` | Localhost-only `/desktop` dashboard and its JSON API |
+| `agent/lapremote/tray.py` | Tray icon and menu (pystray); tray mode runs the server in a thread |
+| `agent/lapremote/autostart.py` | Start at login on Windows, macOS and Linux |
+| `agent/packaging/entry.py` | Entry point for the PyInstaller build (`scripts/build_agent.py`) |
 | `agent/lapremote/services.py` | Builds every feature service; tests inject fakes through `Overrides` |
 | `agent/lapremote/storage.py` | Atomic JSON files seeded from `shared/*.default.json` |
 | `shared/protocol.schema.json` | Normalised protocol schema both sides are tested against |
@@ -109,7 +113,7 @@ flowchart LR
 | `web/src/features/` | Screens: pairing, Now Playing, trackpad and air mouse, screen preview, keys, launcher, scenes, timer, power, AI, devices, settings, HTTPS help |
 | `web/tests/unit/` | vitest |
 | `web/tests/e2e/` | Playwright mobile smoke tests (iPhone 15, Pixel 8) |
-| `scripts/` | `dev.py`, `check.py`, `recon.py`, `build_web.py`, `make_icons.py`, `measure.py`, `ai_smoke.py` |
+| `scripts/` | `dev.py`, `check.py`, `recon.py`, `build_web.py`, `make_icons.py`, `measure.py`, `ai_smoke.py`, `build_agent.py` |
 | `docs/` | Architecture, protocol, platform matrix, testing, security, AI, HTTPS, phase reports |
 
 Modules listed in the build spec are added in the phase that implements them. Nothing is created

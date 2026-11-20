@@ -12,7 +12,7 @@ import time
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 
-from lapremote.config import Config
+from lapremote.config import CONFIG_FILENAME, Config, save_config
 from lapremote.connection import Connection, Hub
 from lapremote.logging_setup import get_logger, log_event
 from lapremote.protocol import (
@@ -28,6 +28,7 @@ from lapremote.protocol import (
     FeatureStatus,
     Ping,
     Pong,
+    Role,
     Toast,
 )
 from lapremote.router import ActionError, AuthRejectedError, Router
@@ -80,6 +81,7 @@ class Agent:
         self.log = get_logger("agent")
         self.hub = Hub()
         self.router = Router()
+        self.router.is_paused = lambda: self.config.remote_control_paused
         self.devices = DeviceStore(data_dir / "devices.json", clock=wall_clock)
         self._code_listeners: list[Callable[[str], None]] = []
         self.pairing = PairingManager(clock=clock, on_rotate=self._code_rotated)
@@ -228,13 +230,17 @@ class Agent:
         await conn.send("devices.state", self.devices_state())
 
     async def _devices_revoke(self, conn: Connection, payload: DevicesRevoke) -> None:
+        await self.revoke_device(payload.device_id, by=conn.device_id)
+
+    async def revoke_device(self, device_id: str, *, by: str | None) -> None:
+        """Forget a device and close its connections. ``by`` is None from the laptop itself."""
         try:
-            device = self.devices.revoke(payload.device_id)
+            device = self.devices.revoke(device_id)
         except UnknownDeviceError as exc:
             raise ActionError("That device isn't paired.") from exc
         except LastOwnerError as exc:
             raise ActionError("Make another device the owner first.") from exc
-        log_event(self.log, "device_revoked", device=device.device_id, by=conn.device_id)
+        log_event(self.log, "device_revoked", device=device.device_id, by=by or "laptop")
         targets = self.hub.for_device(device.device_id)
         for target in targets:
             target.device = None
@@ -248,8 +254,13 @@ class Agent:
             await target.close(CLOSE_REVOKED, CLOSE_REVOKED_REASON)
 
     async def _devices_role(self, conn: Connection, payload: DevicesRole) -> None:
+        await self.set_device_role(payload.device_id, payload.role, skip=conn)
+
+    async def set_device_role(
+        self, device_id: str, role: Role, *, skip: Connection | None = None
+    ) -> None:
         try:
-            device = self.devices.set_role(payload.device_id, payload.role)
+            device = self.devices.set_role(device_id, role)
         except UnknownDeviceError as exc:
             raise ActionError("That device isn't paired.") from exc
         except LastOwnerError as exc:
@@ -261,6 +272,21 @@ class Agent:
             else "You're now a guest on this laptop."
         )
         for target in self.hub.for_device(device.device_id):
-            if target is not conn:
+            target.device = device
+            if target is not skip:
                 await target.send("toast", Toast(level="info", message=message))
         await self.broadcast_devices()
+
+    async def set_paused(self, paused: bool) -> None:
+        """Pause or resume remote control from the laptop. Phones stay connected."""
+        if self.config.remote_control_paused == paused:
+            return
+        self.config.remote_control_paused = paused
+        save_config(self.config, self.data_dir / CONFIG_FILENAME)
+        log_event(self.log, "remote_control", paused=paused)
+        message = (
+            "Remote control is paused on the laptop." if paused else "Remote control is back on."
+        )
+        await self.hub.broadcast(
+            "toast", Toast(level="warn" if paused else "info", message=message)
+        )

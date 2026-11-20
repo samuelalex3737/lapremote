@@ -8,7 +8,9 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import statistics
 import time
+from collections import deque
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -42,6 +44,13 @@ MSG_OWNER_ONLY = "Only the owner can do that."
 MSG_SLOW_DOWN = "Too many requests. Slow down a little."
 MSG_UNAVAILABLE = "That isn't available on this laptop yet."
 MSG_INTERNAL = "Something went wrong on the laptop."
+MSG_PAUSED = "Remote control is paused on the laptop."
+
+# Still answered while remote control is paused: staying connected and seeing state.
+PAUSE_EXEMPT = frozenset(
+    {"auth.pair", "auth.resume", "ping", "devices.list", "media.artwork", "preview.stop"}
+)
+TIMING_SAMPLES = 200
 
 
 class ActionError(Exception):
@@ -68,6 +77,8 @@ class Router:
     def __init__(self, logger: logging.Logger | None = None) -> None:
         self._handlers: dict[str, Handler] = {}
         self._background_types: set[str] = set()
+        self.is_paused: Callable[[], bool] = lambda: False
+        self._timings: dict[str, deque[float]] = {}
         self._tasks: set[asyncio.Task[None]] = set()
         self._log = logger or get_logger("router")
 
@@ -82,6 +93,14 @@ class Router:
             self._background_types.add(type_)
         else:
             self._background_types.discard(type_)
+
+    def handling_ms(self, device_id: str) -> tuple[float, float] | None:
+        """Median and 95th percentile time the laptop took to handle this device's commands."""
+        samples = sorted(self._timings.get(device_id, ()))
+        if not samples:
+            return None
+        p95 = samples[min(len(samples) - 1, round(0.95 * (len(samples) - 1)))]
+        return round(statistics.median(samples), 2), round(p95, 2)
 
     def has_handler(self, type_: str) -> bool:
         return type_ in self._handlers
@@ -147,6 +166,12 @@ class Router:
             await self._ack(conn, env.id, False, denial)
             return
 
+        if type_ not in PAUSE_EXEMPT and self.is_paused():
+            self._record(conn, type_, False, started, error="paused")
+            if spec.reply != "none":
+                await self._ack(conn, env.id, False, MSG_PAUSED)
+            return
+
         try:
             payload = spec.payload.model_validate(env.payload)
         except ValidationError as exc:
@@ -203,6 +228,9 @@ class Router:
             return
 
         self._record(conn, type_, True, started, **extra)
+        if conn.device_id is not None and type_ not in HIGH_FREQUENCY:
+            samples = self._timings.setdefault(conn.device_id, deque(maxlen=TIMING_SAMPLES))
+            samples.append((time.perf_counter() - started) * 1000)
         if spec.reply == "ack":
             await self._ack(conn, env.id, True)
 

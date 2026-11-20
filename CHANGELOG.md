@@ -4,6 +4,23 @@ All notable changes to LapRemote. Versions follow [Semantic Versioning](https://
 
 ## [Unreleased]
 
+### Phase 9 - Tray, desktop dashboard, start at login and packaging
+
+- Tray icon (pystray) with Pair a phone, Devices, Pause remote control, Open dashboard, Start at
+  login, Open logs folder and Quit. The server runs in a background thread; `--no-tray` keeps the
+  old terminal-only mode, which is also used automatically when there's no desktop session.
+- `/desktop` dashboard, only for the laptop itself: pairing QR with a New code button, devices
+  with online status and the laptop's handling time (median / 95th percentile), make owner or
+  guest, remove, a permission checklist built from the feature status, and settings (browser,
+  AI provider and model, preview quality).
+- Pause remote control: phones stay connected but every control message is refused with a clear
+  message, and phones get a toast when it changes. Saved in `config.json`.
+- Start at login on Windows (Run key), macOS (LaunchAgent) and Linux (XDG autostart).
+- First run: the dashboard opens with a short pairing guide while no phone is paired.
+- `scripts/build_agent.py` builds a one-folder PyInstaller app with the web build, the dashboard
+  and the default shortcuts and scenes inside.
+- Tests no longer leak `LAPREMOTE_PORT` / `LAPREMOTE_HTTPS` between test cases.
+
 ### Phase 8 - AI commands and secure-context features
 
 - AI assistant (More > Ask LapRemote):
