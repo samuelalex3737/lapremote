@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import itertools
 import json
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
@@ -14,7 +14,9 @@ from fastapi.testclient import TestClient
 from starlette.testclient import WebSocketTestSession
 
 from lapremote.ai.providers import ChatProvider
+from lapremote.apps import AppSource
 from lapremote.autostart import Autostart
+from lapremote.clipboard import ClipboardBackend
 from lapremote.config import Config
 from lapremote.core import Agent
 from lapremote.input.service import InputDevices, detect_input_devices
@@ -22,13 +24,20 @@ from lapremote.media.base import MediaBackend, NoSessionBackend
 from lapremote.preview.capture import Grabber
 from lapremote.security.ratelimit import Limits
 from lapremote.server import create_app
-from lapremote.shortcuts import Launcher
+from lapremote.shortcuts import IconFetcher, Launcher
 from lapremote.system.brightness import BrightnessBackend
 from lapremote.system.context import ForegroundReader
 from lapremote.system.power import PowerBackend
 from lapremote.system.volume import VolumeBackend
 
-from .fakes import FakeAutostart, FakeLauncher, FakePower, FakeVolume
+from .fakes import (
+    FakeApps,
+    FakeAutostart,
+    FakeClipboard,
+    FakeLauncher,
+    FakePower,
+    FakeVolume,
+)
 
 ORIGIN = "http://testserver"
 
@@ -49,6 +58,11 @@ def make_app(
     launcher: Launcher | None = None,
     ai_provider: ChatProvider | None = None,
     autostart: Autostart | None = None,
+    app_source: AppSource | None = None,
+    clipboard: ClipboardBackend | None = None,
+    site_icon: IconFetcher | None = None,
+    wol_sender: Callable[[str, list[str]], None] | None = None,
+    upload_folder: Path | None = None,
 ) -> FastAPI:
     # Never inject real input from tests: default to the dry-run backend.
     devices = input_devices or detect_input_devices("windows", None, dry_run=True)
@@ -78,6 +92,12 @@ def make_app(
         ai_provider=ai_provider,
         # Never the real login items from tests.
         autostart=autostart or FakeAutostart(),
+        # Never the real installed apps, clipboard, network or Downloads folder.
+        app_source=app_source or FakeApps(),
+        clipboard=clipboard or FakeClipboard(),
+        site_icon=site_icon,
+        wol_sender=wol_sender or (lambda _mac, _targets: None),
+        upload_folder=lambda: upload_folder or home / "uploads",
     )
 
 

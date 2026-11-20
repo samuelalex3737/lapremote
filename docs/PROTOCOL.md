@@ -134,6 +134,51 @@ Sam approved these on 2026-11-19. They extend the contract above and are part of
 
 - **`GET /api/health`** -> `{"ok": true, "version": "<semver>", "uptime": <seconds>}`. It needs no
   authentication, so it returns nothing else: no hostname, OS, devices or session details.
+- **`POST /api/upload`** (approved 2026-11-20): an owner phone sends one file as the raw request
+  body. Headers: `X-LapRemote-Device: <deviceId>`, `Authorization: Bearer <token>`,
+  `X-LapRemote-Filename: <percent-encoded name>`, and an `Origin` matching the agent like the
+  socket. The file is saved to `~/Downloads/LapRemote/` under a cleaned name (never overwriting,
+  never opened or run). Limit 100 MB. Answers `{"ok": true, "name", "size"}` or
+  `{"ok": false, "error"}` with 400 (bad name or size), 401 (bad token), 403 (guest or origin),
+  413 (too big) or 429 (another upload from this phone still running).
+
+## Additions after v1.0.0 (approved 2026-11-20)
+
+All owner-only. Each new reply is listed with its request.
+
+| Client message | Payload | Answer |
+|---|---|---|
+| `clipboard.set` | `{text}` (1 to 100,000 characters) | ack. Puts the text on the laptop clipboard |
+| `clipboard.get` | `{}` | `clipboard.state` `{text, ts}` with the laptop clipboard text ("" when empty or not text) |
+| `url.open` | `{url}` (http or https only) | ack. Opens it in the preferred browser |
+| `apps.list` | `{}` | `apps.state` `{apps: [{appId, name}]}`: installed apps a shortcut can open |
+| `layouts.save` | `{layout: Layout}` | ack, then `layouts.state` to everyone |
+| `layouts.delete` | `{layoutId}` | ack, then `layouts.state` |
+| `wol.wake` | `{mac}` (`AA:BB:CC:DD:EE:FF`, a laptop from `peers.state`) | ack after the wake packet is sent |
+
+Pushed by the agent:
+
+- **`layouts.state`** `{layouts: Layout[]}` on connect and after every change.
+- **`peers.state`** `{peers: [{peerId, name, url, online, mac, lastSeenAt}]}` to owners on connect
+  and when another LapRemote laptop appears on or leaves the network (found with mDNS).
+  Offline laptops stay listed with their `mac` so they can be woken.
+- **`clipboard.state`** is also pushed to owners when the person sends the laptop clipboard to
+  the phone from the tray or the dashboard.
+
+Shapes:
+
+- **`Shortcut`** gains `image`: a PNG data URL of the site's or app's own icon, or null. Only the
+  agent sets it; an `image` in `shortcuts.save` is ignored. App shortcuts may now name an installed
+  app by its id from `apps.state` (on Windows an AppUserModelID such as
+  `SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify`).
+- **`Layout`** = `{id, name, match: {processes: string[], sites: Site[], titles: string[]},
+  buttons: LayoutButton[]}` (1 to 24 buttons). A layout fits when the app in front has one of the
+  process names, sites, or title fragments (case-insensitive).
+- **`LayoutButton`** = `{label, icon?, action}`, where `action` is one of
+  `{type: "key", key, modifiers}`, `{type: "media", command}`, `{type: "seek", by}`,
+  `{type: "volume", delta}` or `{type: "launch", shortcutId}`. The phone runs a button by sending
+  the matching existing message (`key.press`, `media.*`, `media.seek`, `volume.step`,
+  `launch.open`), so the same checks apply.
 
 ## Clarifications
 
@@ -254,6 +299,13 @@ shortcuts.reorder
 scenes.save
 scenes.delete
 ping
+clipboard.set
+clipboard.get
+url.open
+apps.list
+layouts.save
+layouts.delete
+wol.wake
 ```
 
 ```text agent-to-client
@@ -275,6 +327,10 @@ devices.state
 power.token
 shortcuts.state
 scenes.state
+layouts.state
+clipboard.state
+apps.state
+peers.state
 ```
 
 ## Change log
@@ -286,3 +342,4 @@ scenes.state
 | 2026-11-19 | Phase 2: clarification 8 (input units). No contract change. |
 | 2026-11-19 | Phase 3: clarifications 9 (timestamps in ms) and 10 (media state). No contract change. |
 | 2026-11-19 | Phase 8: clarification 11 (AI plans). No contract change. |
+| 2026-11-20 | Approved additions after v1.0.0: clipboard, links, file upload, installed apps, layouts, laptops on the network, Wake-on-LAN, shortcut icons. |

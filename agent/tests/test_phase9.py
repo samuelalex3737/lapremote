@@ -306,6 +306,7 @@ def test_tray_menu_and_actions(isolated_home: Path) -> None:
             "Devices...",
             "Pause remote control",
             "Open dashboard",
+            "Send clipboard to phone",
             "Start at login",
             "Open logs folder",
             "Quit LapRemote",

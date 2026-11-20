@@ -191,7 +191,14 @@ def run_with_tray(
         for icon in icon_ref:
             icon.stop()
 
-    ctl = TrayController(agent, port, app.state.desktop.autostart, stop, open_url=open_url)
+    ctl = TrayController(
+        agent,
+        port,
+        app.state.desktop.autostart,
+        stop,
+        open_url=open_url,
+        send_clipboard=app.state.services.clipboard.send_to_phones,
+    )
 
     async def remember_loop() -> None:
         ctl.loop = asyncio.get_running_loop()

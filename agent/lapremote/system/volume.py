@@ -11,6 +11,7 @@ import contextlib
 import re
 import shutil
 import time
+from collections.abc import Callable
 from typing import Any, Protocol
 
 from lapremote.connection import Connection
@@ -23,6 +24,16 @@ from lapremote.router import ActionError
 log = get_logger("volume")
 
 POLL_SECONDS = 0.5
+# Show the laptop's volume indicator this long after the last change from the phone.
+OSD_DELAY_SECONDS = 0.35
+# From this level a volume-up key press can't go any higher.
+OSD_TOP = 99
+# How long to wait for Windows to apply one volume-key press, and how often to look.
+KEY_WAIT_SECONDS = 0.6
+KEY_POLL_SECONDS = 0.03
+# Pause before checking that the exact level stuck, and how many times to put it back.
+KEY_SETTLE_SECONDS = 0.15
+OSD_RESTORE_TRIES = 3
 REACQUIRE_SECONDS = 5.0
 
 
@@ -154,13 +165,30 @@ def create_volume_backend(os_name: OsName) -> VolumeBackend | None:
 
 
 class VolumeService:
-    def __init__(self, agent: Agent, backend: VolumeBackend | None, keys: MediaKeys) -> None:
+    def __init__(
+        self,
+        agent: Agent,
+        backend: VolumeBackend | None,
+        keys: MediaKeys,
+        *,
+        show_osd: bool = False,
+        osd_delay: float = OSD_DELAY_SECONDS,
+        key_wait: float = KEY_WAIT_SECONDS,
+        key_settle: float = KEY_SETTLE_SECONDS,
+    ) -> None:
         self._agent = agent
         self._backend = backend
         self._keys = keys
         self._state: tuple[int, bool] | None = None
         self._task: asyncio.Task[None] | None = None
         self._failing = False
+        # Setting the level through the audio API is silent: the laptop's own volume
+        # indicator only appears for volume keys. See show_indicator.
+        self._show_osd = show_osd and keys.available
+        self._osd_delay = osd_delay
+        self._key_wait = key_wait
+        self._key_settle = key_settle
+        self._osd_task: asyncio.Task[None] | None = None
 
     def register(self) -> None:
         router = self._agent.router
@@ -192,10 +220,11 @@ class VolumeService:
         self._task = asyncio.get_running_loop().create_task(self._poll())
 
     async def stop(self) -> None:
-        if self._task is not None:
-            self._task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await self._task
+        for task in (self._task, self._osd_task):
+            if task is not None:
+                task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await task
 
     async def _poll(self) -> None:
         while True:
@@ -229,7 +258,9 @@ class VolumeService:
         if self._state is not None:
             await conn.send("volume.state", self._payload(self._state))
 
-    async def set_level(self, level: int) -> None:
+    async def set_level(self, level: int, *, show: bool = False) -> None:
+        """Set the exact level. ``show`` also pops up the laptop's volume indicator once the
+        changes stop (for changes the person makes from the phone, not the timer's fade)."""
         if self._backend is None:
             raise ActionError("Setting an exact volume isn't available on this laptop.")
         try:
@@ -237,30 +268,105 @@ class VolumeService:
         except VolumeError as exc:
             raise ActionError("Couldn't change the volume.") from exc
         await self.refresh()
+        if show and self._show_osd:
+            self._schedule_indicator()
+
+    def _schedule_indicator(self) -> None:
+        # A slider sends many levels in a row: show the indicator once, after the last one.
+        if self._osd_task is not None and not self._osd_task.done():
+            self._osd_task.cancel()
+        self._osd_task = asyncio.get_running_loop().create_task(self._indicator_later())
+
+    async def _indicator_later(self) -> None:
+        await asyncio.sleep(self._osd_delay)
+        await self.show_indicator()
+
+    async def show_indicator(self) -> None:
+        """Pop up the laptop's volume indicator without changing the volume.
+
+        One volume-key press each way (the indicator appears for keys only). Windows applies
+        key presses a little later and in its own time, so each press is waited for before the
+        next step; then the exact level is set again and checked. Skipped while muted, because
+        a volume key would unmute.
+        """
+        backend = self._backend
+        if backend is None:
+            return
+        try:
+            level, muted = await backend.get()
+            if muted:
+                return
+            # At the top a press up does nothing, so go down first there.
+            first, second = (
+                ("volume_down", "volume_up") if level >= OSD_TOP else ("volume_up", "volume_down")
+            )
+            await asyncio.to_thread(self._keys.press, first)
+            await self._wait_until(lambda now: now != level)
+            await asyncio.to_thread(self._keys.press, second)
+            await self._wait_until(lambda now: now == level)
+            await asyncio.sleep(self._key_settle)
+            for _ in range(OSD_RESTORE_TRIES):
+                if (await backend.get())[0] == level:
+                    break
+                await backend.set_level(level)
+                await asyncio.sleep(self._key_settle)
+        except VolumeError:
+            return
+        await self.refresh()
+
+    async def _wait_until(self, done: Callable[[int], bool]) -> None:
+        """Poll the level until ``done`` says so or the key wait runs out."""
+        backend = self._backend
+        if backend is None:
+            return
+        deadline = asyncio.get_running_loop().time() + self._key_wait
+        while asyncio.get_running_loop().time() < deadline:
+            if done((await backend.get())[0]):
+                return
+            await asyncio.sleep(KEY_POLL_SECONDS)
 
     async def _set(self, _conn: Connection, p: VolumeSet) -> None:
-        await self.set_level(p.level)
+        await self.set_level(p.level, show=True)
 
-    async def step(self, delta: int) -> None:
+    async def step(self, delta: int, *, show: bool = True) -> None:
         if self._backend is None:
+            # Volume keys show the laptop's indicator by themselves.
             if not self._keys.volume_step(delta):
                 raise ActionError("Volume control isn't available on this laptop.")
             return
         if self._state is None:
             await self.refresh(broadcast=False)
         current = self._state[0] if self._state is not None else 50
-        await self.set_level(current + delta)
+        await self.set_level(current + delta, show=show)
 
     async def set_muted(self, muted: bool) -> None:
         if self._backend is None:
             if not self._keys.toggle_mute():
                 raise ActionError("Volume control isn't available on this laptop.")
             return
+        if self._show_osd and await self._mute_with_key(muted):
+            return
         try:
             await self._backend.set_muted(muted)
         except VolumeError as exc:
             raise ActionError("Couldn't change the volume.") from exc
         await self.refresh()
+
+    async def _mute_with_key(self, muted: bool) -> bool:
+        """Use the mute key so the laptop shows its indicator. True when it worked."""
+        backend = self._backend
+        if backend is None:
+            return False
+        try:
+            if (await backend.get())[1] == muted:
+                return True
+            await asyncio.to_thread(self._keys.toggle_mute)
+            done = (await backend.get())[1] == muted
+        except VolumeError:
+            return False
+        if done:
+            await self.refresh()
+        return done
 
     async def _step(self, _conn: Connection, p: VolumeStep) -> None:
         await self.step(p.delta)

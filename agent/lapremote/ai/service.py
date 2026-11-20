@@ -67,7 +67,7 @@ class ActionRunner:
         elif t == "media.select":
             await s.media.select(p["sessionId"])
         elif t == "volume.set":
-            await s.volume.set_level(p["level"])
+            await s.volume.set_level(p["level"], show=True)
         elif t == "volume.step":
             await s.volume.step(p["delta"])
         elif t == "volume.mute":

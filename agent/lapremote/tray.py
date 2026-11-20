@@ -70,6 +70,7 @@ class TrayController:
         *,
         open_url: Callable[[str], object] = webbrowser.open,
         show_folder: Callable[[Path], None] = open_folder,
+        send_clipboard: Callable[[], Coroutine[Any, Any, int]] | None = None,
     ) -> None:
         self.agent = agent
         self.port = port
@@ -77,6 +78,7 @@ class TrayController:
         self._stop = stop
         self._open_url = open_url
         self._show_folder = show_folder
+        self._send_clipboard = send_clipboard
         self.loop: asyncio.AbstractEventLoop | None = None
 
     def dashboard_url(self, section: str = "") -> str:
@@ -129,6 +131,15 @@ class TrayController:
             return
         log_event(log, "autostart", enabled=self.autostart_enabled())
 
+    def send_clipboard(self) -> None:
+        """Push the laptop clipboard to the owner phones (shows on the phone)."""
+        if self._send_clipboard is None or self.loop is None:
+            return
+        try:
+            asyncio.run_coroutine_threadsafe(self._send_clipboard(), self.loop).result(timeout=5)
+        except Exception as exc:
+            log_event(log, "tray_clipboard_failed", level=30, error=type(exc).__name__)
+
     def open_logs(self) -> None:
         self._show_folder(self.agent.data_dir / "logs")
 
@@ -143,6 +154,7 @@ def menu_entries(ctl: TrayController) -> list[MenuEntry]:
         MenuEntry("Devices...", ctl.open_devices),
         MenuEntry("Pause remote control", ctl.toggle_pause, checked=ctl.paused),
         MenuEntry("Open dashboard", ctl.open_dashboard),
+        MenuEntry("Send clipboard to phone", ctl.send_clipboard),
         MenuEntry(
             "Start at login",
             ctl.toggle_autostart,

@@ -313,38 +313,68 @@ describe('2-finger scroll', () => {
 })
 
 describe('pinch', () => {
-  it('zooms in and out when the distance changes more than 8%', () => {
+  it('starts when the gap changes by 24px and 15%, then zooms in and out in 8% steps', () => {
     const d = new Driver().down(1, 100, 300).down(2, 200, 300)
-    d.move(1, 95, 300).move(2, 205, 300, 0) // 110/100 = +10%
+    d.move(1, 90, 300).move(2, 210, 300, 0) // gap 100 -> 120: +20px, not enough yet
+    expect(d.of('zoom')).toEqual([])
+    d.move(1, 87, 300, 16).move(2, 213, 300, 0) // gap 126: +26px and +26%
     expect(d.of('zoom')).toEqual([{ kind: 'zoom', dir: 'in' }])
     d.clear()
-    d.move(1, 105, 300, 130).move(2, 195, 300, 0) // 90/110 = -18%
+    d.move(1, 100, 300, 130).move(2, 200, 300, 0) // 100/126 = -21%
     expect(d.of('zoom')).toEqual([{ kind: 'zoom', dir: 'out' }])
   })
 
   it('debounces steps by 120ms and re-baselines after each step', () => {
     const d = new Driver().down(1, 100, 300).down(2, 200, 300)
-    d.move(1, 95, 300).move(2, 205, 300, 0) // step 1 (110)
-    d.move(1, 90, 300, 50).move(2, 210, 300, 0) // 120: +9% but only 50ms later
+    d.move(1, 85, 300).move(2, 215, 300, 0) // step 1 (gap 130)
+    d.move(1, 80, 300, 50).move(2, 220, 300, 0) // 140: +8% but only 50ms later
     expect(d.of('zoom')).toHaveLength(1)
-    d.move(1, 89, 300, 80) // 130ms after step 1: 121/110 = +10%
+    d.move(1, 78, 300, 80) // 130ms after step 1: 142/130 = +9%
     expect(d.of('zoom')).toHaveLength(2)
-    d.move(1, 88, 300, 130) // 122/121: under 8% from the new baseline
+    d.move(1, 77, 300, 130) // 143/142: under 8% from the new baseline
     expect(d.of('zoom')).toHaveLength(2)
   })
 
-  it('pinch plus drift does not scroll', () => {
+  it('a clear pinch with a little drift does not scroll', () => {
     const d = new Driver().down(1, 100, 300).down(2, 200, 300)
-    d.move(1, 94, 296).move(2, 206, 296, 0) // spread 12% and drift up 4px
-    d.move(1, 94, 270, 16).move(2, 206, 270, 0) // keep drifting up 26px
+    d.move(1, 80, 296).move(2, 220, 296, 0) // gap +40px, drift up 4px
+    d.move(1, 80, 290, 16).move(2, 220, 290, 0) // keep drifting a little
     expect(d.of('zoom')).toHaveLength(1)
     expect(d.of('scroll')).toEqual([])
   })
 
-  it('does not zoom below the 8% threshold', () => {
+  it('does not zoom below the start threshold', () => {
     const d = new Driver().down(1, 100, 300).down(2, 200, 300)
-    d.move(1, 97, 300).move(2, 203, 300, 0) // 6%
+    d.move(1, 94, 300).move(2, 206, 300, 0) // +12px
     expect(d.of('zoom')).toEqual([])
+  })
+})
+
+describe('two fingers held close together', () => {
+  // Real touch events move one finger at a time, so the gap jumps by the whole step of one
+  // finger before the other catches up. With a small gap that used to look like a pinch.
+  it('scrolls side by side, without zooming', () => {
+    const d = new Driver().down(1, 100, 300).down(2, 130, 300) // 30px apart
+    for (let i = 1; i <= 6; i++) d.move(1, 100, 300 - 12 * i).move(2, 130, 300 - 12 * i, 0)
+    expect(d.of('zoom')).toEqual([])
+    expect(sum(d.of('scroll')).dy).toBeCloseTo(-7.2) // up 72px = 7.2 notches
+  })
+
+  it('scrolls one above the other, without zooming', () => {
+    const d = new Driver().down(1, 120, 300).down(2, 120, 330) // stacked, 30px apart
+    for (let i = 1; i <= 6; i++) d.move(1, 120, 300 + 12 * i).move(2, 120, 330 + 12 * i, 0)
+    expect(d.of('zoom')).toEqual([])
+    expect(sum(d.of('scroll')).dy).toBeGreaterThan(5)
+  })
+
+  it('scrolls when the fingers wobble apart a little on the way', () => {
+    const d = new Driver().down(1, 100, 300).down(2, 135, 300)
+    for (let i = 1; i <= 8; i++) {
+      const wobble = i % 2 === 0 ? 4 : -3
+      d.move(1, 100 - wobble, 300 - 10 * i).move(2, 135 + wobble, 300 - 10 * i, 0)
+    }
+    expect(d.of('zoom')).toEqual([])
+    expect(sum(d.of('scroll')).dy).toBeLessThan(-5)
   })
 })
 

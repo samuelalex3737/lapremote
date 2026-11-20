@@ -112,6 +112,9 @@ ol.guide li { margin: 6px 0; }
         <label for="autostart">Start LapRemote when I log in</label>
         <input type="checkbox" id="autostart">
       </div>
+      <p class="row">
+        <button id="send-clipboard">Send clipboard to phone</button>
+      </p>
       <p class="muted">Logs: <span id="logs"></span></p>
       <div class="toast" id="control-toast" role="status"></div>
     </section>
@@ -301,6 +304,11 @@ async function refresh() {
 }
 
 $("regenerate").addEventListener("click", () => { post("/desktop/api/pair/regenerate").then(refresh); });
+$("send-clipboard").addEventListener("click", () => {
+  post("/desktop/api/clipboard/send")
+    .then((d) => say("control-toast", d.phones === 1 ? "Sent to your phone." : "Sent to " + d.phones + " phones."))
+    .catch((err) => say("control-toast", err.message));
+});
 $("paused").addEventListener("change", (e) => {
   post("/desktop/api/pause", { paused: e.target.checked })
     .then(() => { say("control-toast", e.target.checked ? "Paused." : "Remote control is on."); refresh(); })

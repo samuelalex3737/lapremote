@@ -20,14 +20,22 @@ HOST_NAME = "lapremote.local."
 log = get_logger("discovery")
 
 
-def build_service_info(ip: str, port: int, instance: str) -> AsyncServiceInfo:
+def build_service_info(
+    ip: str, port: int, instance: str, extra: dict[str, str] | None = None
+) -> AsyncServiceInfo:
+    """``extra`` adds TXT fields other LapRemote laptops read: id, name, mac and https."""
     safe_instance = "".join(ch for ch in instance if ch.isalnum() or ch in " -")[:40] or "Laptop"
+    properties = {"v": "1", "version": __version__, "path": "/", **(extra or {})}
+    # Two laptops with the same computer name would announce the same service name and one
+    # would hide the other, so the laptop's own id goes into the name too.
+    agent_id = properties.get("id", "")
+    suffix = f" ({agent_id[:6]})" if agent_id else ""
     return AsyncServiceInfo(
         SERVICE_TYPE,
-        f"LapRemote on {safe_instance}.{SERVICE_TYPE}",
+        f"LapRemote on {safe_instance}{suffix}.{SERVICE_TYPE}",
         addresses=[socket.inet_aton(ip)],
         port=port,
-        properties={"v": "1", "version": __version__, "path": "/"},
+        properties=properties,
         server=HOST_NAME,
     )
 
@@ -37,10 +45,16 @@ class Advertiser:
         self._zc: AsyncZeroconf | None = None
         self._info: AsyncServiceInfo | None = None
 
-    async def start(self, ip: str, port: int, instance: str) -> bool:
+    @property
+    def zeroconf(self) -> AsyncZeroconf | None:
+        return self._zc
+
+    async def start(
+        self, ip: str, port: int, instance: str, extra: dict[str, str] | None = None
+    ) -> bool:
         try:
             self._zc = AsyncZeroconf(interfaces=[ip], ip_version=IPVersion.V4Only)
-            self._info = build_service_info(ip, port, instance)
+            self._info = build_service_info(ip, port, instance, extra)
             await self._zc.async_register_service(self._info, allow_name_change=True)
         except (OSError, RuntimeError, ValueError) as exc:
             log_event(log, "mdns_failed", level=30, error=str(exc))

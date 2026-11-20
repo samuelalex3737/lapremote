@@ -12,11 +12,13 @@ import re
 import shutil
 import subprocess
 import webbrowser
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Protocol
 
 from pydantic import TypeAdapter, ValidationError
 
+from lapremote.apps import AppsService, is_installed_id, store_app_id
 from lapremote.connection import Connection
 from lapremote.core import Agent
 from lapremote.logging_setup import get_logger, log_event
@@ -143,6 +145,9 @@ class SystemLauncher:
             if start is None:
                 msg = "os.startfile is unavailable"
                 raise LaunchError(msg)
+            if is_installed_id(target):
+                # An installed app's id (a Store app or a registered desktop app).
+                target = "shell:AppsFolder\\" + target
             try:
                 start(target)
             except OSError as exc:
@@ -210,11 +215,23 @@ class ShortcutStore:
         self._save()
 
 
+IconFetcher = Callable[[str], Awaitable[str | None]]
+
+
 class ShortcutService:
-    def __init__(self, agent: Agent, store: ShortcutStore, launcher: Launcher) -> None:
+    def __init__(
+        self,
+        agent: Agent,
+        store: ShortcutStore,
+        launcher: Launcher,
+        apps: AppsService | None = None,
+        site_icon: IconFetcher | None = None,
+    ) -> None:
         self._agent = agent
         self._store = store
         self._launcher = launcher
+        self._apps = apps
+        self._site_icon = site_icon
 
     @property
     def store(self) -> ShortcutStore:
@@ -228,6 +245,7 @@ class ShortcutService:
         router.register("shortcuts.delete", self._delete)
         router.register("shortcuts.reorder", self._reorder)
         self._agent.on_connect.append(self._send_state)
+        self._agent.on_startup.append(self._backfill_icons)
 
     def state(self) -> ShortcutsState:
         return ShortcutsState(shortcuts=self._store.items())
@@ -242,6 +260,8 @@ class ShortcutService:
         shortcut = self._store.get(shortcut_id)
         if shortcut is None:
             raise ActionError("That shortcut doesn't exist anymore.")
+        if shortcut.kind == "app" and shortcut.app is not None:
+            shortcut = await self._upgrade_store_path(shortcut)
         try:
             if shortcut.kind == "url" and shortcut.url is not None:
                 self._launcher.open_url(shortcut.url)
@@ -256,19 +276,89 @@ class ShortcutService:
     async def _open(self, _conn: Connection, p: LaunchOpen) -> None:
         await self.launch(p.shortcut_id)
 
+    async def _resolve_app(self, target: str) -> str:
+        """A launchable, validated app target: an installed app's id or a checked path."""
+        value = target.strip()
+        if self._agent.os == "windows" and self._apps is not None:
+            installed = await self._apps.installed()
+            store_id = store_app_id(value, installed)
+            if store_id is not None:
+                return store_id
+            if is_installed_id(value):
+                if any(app.app_id == value for app in installed):
+                    return value
+                raise ActionError("That app isn't installed on this laptop.")
+        try:
+            return validate_app_target(self._agent.os, value)
+        except ValueError as exc:
+            raise ActionError(str(exc)) from exc
+
+    async def _upgrade_store_path(self, shortcut: Shortcut) -> Shortcut:
+        """Store apps won't start from their .exe: switch an old saved path to the app id."""
+        if self._agent.os != "windows" or self._apps is None or shortcut.app is None:
+            return shortcut
+        store_id = store_app_id(shortcut.app, await self._apps.installed())
+        if store_id is None:
+            return shortcut
+        upgraded = shortcut.model_copy(update={"app": store_id})
+        self._store.upsert(upgraded)
+        log_event(log, "shortcut_upgraded", shortcut=shortcut.id)
+        await self._broadcast()
+        return upgraded
+
     async def _save(self, _conn: Connection, p: ShortcutsSave) -> None:
         shortcut = p.shortcut
         if shortcut.kind == "app" and shortcut.app is not None:
-            try:
-                target = validate_app_target(self._agent.os, shortcut.app)
-            except ValueError as exc:
-                raise ActionError(str(exc)) from exc
-            shortcut = shortcut.model_copy(update={"app": target})
+            shortcut = shortcut.model_copy(update={"app": await self._resolve_app(shortcut.app)})
+        # The icon image is the agent's own work and never taken from a phone. Keep the stored
+        # one while the target is unchanged, otherwise make a new one in the background.
+        previous = self._store.get(shortcut.id)
+        same_target = (
+            previous is not None
+            and previous.kind == shortcut.kind
+            and previous.url == shortcut.url
+            and previous.app == shortcut.app
+        )
+        image = previous.image if (same_target and previous is not None) else None
+        shortcut = shortcut.model_copy(update={"image": image})
         try:
             self._store.upsert(shortcut)
         except OverflowError as exc:
             raise ActionError(f"You can have up to {MAX_SHORTCUTS} shortcuts.") from exc
         await self._broadcast()
+        if image is None and shortcut.icon is None:
+            self._agent.spawn(self.fill_icon(shortcut.id))
+
+    async def make_icon(self, shortcut: Shortcut) -> str | None:
+        if shortcut.kind == "url" and shortcut.url is not None and self._site_icon is not None:
+            return await self._site_icon(shortcut.url)
+        if shortcut.kind == "app" and shortcut.app is not None and self._apps is not None:
+            return await self._apps.icon(shortcut.app)
+        return None
+
+    async def fill_icon(self, shortcut_id: str) -> None:
+        """Make and store the icon image for one shortcut, then tell the phones."""
+        shortcut = self._store.get(shortcut_id)
+        if shortcut is None or shortcut.icon is not None:
+            return
+        image = await self.make_icon(shortcut)
+        current = self._store.get(shortcut_id)
+        # Saved again with another target while we worked: that save makes its own icon.
+        if image is None or current is None:
+            return
+        if (current.url, current.app) != (shortcut.url, shortcut.app):
+            return
+        self._store.upsert(current.model_copy(update={"image": image}))
+        log_event(log, "shortcut_icon", shortcut=shortcut_id, kind=current.kind)
+        await self._broadcast()
+
+    async def _backfill_icons(self) -> None:
+        async def run() -> None:
+            for shortcut in self._store.items():
+                if shortcut.icon is None and shortcut.image is None and shortcut.id != "_once":
+                    await self.fill_icon(shortcut.id)
+
+        self._agent.spawn(run())
 
     async def _delete(self, _conn: Connection, p: ShortcutsDelete) -> None:
         if not self._store.delete(p.shortcut_id):

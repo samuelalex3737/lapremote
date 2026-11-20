@@ -9,8 +9,9 @@ from dataclasses import replace
 from PIL import Image
 
 from lapremote.ai.providers import ChatMessage, ProviderError
+from lapremote.clipboard import ClipboardError
 from lapremote.media.base import MediaBackend, MediaCommand, SessionSnapshot, now_ms, thumbnail_jpeg
-from lapremote.protocol import PowerActionName
+from lapremote.protocol import AppInfo, PowerActionName
 from lapremote.shortcuts import LaunchError
 from lapremote.system.volume import VolumeError
 
@@ -198,3 +199,37 @@ class FakeAutostart:
 
     def disable(self) -> None:
         self.enabled = False
+
+
+class FakeApps:
+    """Installed apps for tests: a Store app and a desktop app, with recognisable icons."""
+
+    def __init__(self) -> None:
+        self.apps = [
+            AppInfo(app_id="SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify", name="Spotify"),
+            AppInfo(app_id="VideoLAN.VLC", name="VLC media player"),
+        ]
+        self.icon_calls: list[str] = []
+
+    def list_apps(self) -> list[AppInfo]:
+        return list(self.apps)
+
+    def icon(self, target: str) -> str | None:
+        self.icon_calls.append(target)
+        return f"data:image/png;base64,ICON-{len(self.icon_calls)}"
+
+
+class FakeClipboard:
+    def __init__(self, text: str = "") -> None:
+        self.text = text
+        self.busy = False
+
+    def get_text(self) -> str:
+        if self.busy:
+            raise ClipboardError("busy")
+        return self.text
+
+    def set_text(self, text: str) -> None:
+        if self.busy:
+            raise ClipboardError("busy")
+        self.text = text

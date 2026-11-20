@@ -25,8 +25,10 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from lapremote import __version__
 from lapremote.ai.providers import ChatProvider
+from lapremote.apps import AppSource
 from lapremote.autostart import Autostart, create_autostart
 from lapremote.banner import render_banner
+from lapremote.clipboard import ClipboardBackend
 from lapremote.config import Config, data_dir, load_config
 from lapremote.connection import Connection
 from lapremote.core import Agent
@@ -35,6 +37,7 @@ from lapremote.discovery import Advertiser
 from lapremote.input.service import InputDevices
 from lapremote.logging_setup import get_logger, log_event, setup_logging
 from lapremote.media.base import MediaBackend
+from lapremote.peers import PeerService, mac_for_ip
 from lapremote.preview.calibration import CALIBRATION_PAGE
 from lapremote.preview.capture import Grabber
 from lapremote.protocol import Ack
@@ -42,13 +45,14 @@ from lapremote.router import MSG_INVALID
 from lapremote.security.pairing import CODE_TTL_SECONDS
 from lapremote.security.ratelimit import Limits
 from lapremote.services import Overrides, build_services
-from lapremote.shortcuts import Launcher
+from lapremote.shortcuts import IconFetcher, Launcher
 from lapremote.system.brightness import BrightnessBackend
 from lapremote.system.context import ForegroundReader
 from lapremote.system.dpi import enable_dpi_awareness
 from lapremote.system.network import detect_lan_ip
 from lapremote.system.power import PowerBackend
 from lapremote.system.volume import VolumeBackend
+from lapremote.upload import downloads_folder, register_upload
 
 # Windows has no registry entry for these, so StaticFiles would send text/plain.
 mimetypes.add_type("application/manifest+json", ".webmanifest")
@@ -137,7 +141,7 @@ class ServerOptions:
 
 
 def _make_lifespan(
-    agent: Agent, opts: ServerOptions
+    agent: Agent, opts: ServerOptions, peers: PeerService
 ) -> Callable[[FastAPI], contextlib.AbstractAsyncContextManager[None]]:
     @contextlib.asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -162,7 +166,18 @@ def _make_lifespan(
         watcher = asyncio.create_task(watch_code())
         advertiser = Advertiser()
         if opts.advertise and ip is not None:
-            await advertiser.start(ip, opts.port, agent.host_name)
+            extra = {
+                "id": peers.own_id,
+                "name": agent.host_name[:63],
+                "https": "1" if agent.config.https.enabled else "0",
+            }
+            mac = mac_for_ip(ip)
+            if mac is not None:
+                extra["mac"] = mac
+            if await advertiser.start(ip, opts.port, agent.host_name, extra):
+                zeroconf = advertiser.zeroconf
+                if zeroconf is not None:
+                    await peers.start_watching(zeroconf.zeroconf, ip)
         await agent.startup()
         log_event(log, "agent_started", version=__version__, port=opts.port, lanIp=ip)
         try:
@@ -172,6 +187,7 @@ def _make_lifespan(
             watcher.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await watcher
+            await peers.stop_watching()
             await advertiser.stop()
             for conn in agent.hub:
                 await conn.close(1001, "agent stopping")
@@ -241,6 +257,11 @@ def create_app(  # noqa: PLR0913 - explicit knobs keep tests free of monkeypatch
     launcher: Launcher | Literal["auto"] = "auto",
     ai_provider: ChatProvider | Literal["auto"] | None = "auto",
     autostart: Autostart | Literal["auto"] | None = "auto",
+    app_source: AppSource | Literal["auto"] = "auto",
+    clipboard: ClipboardBackend | Literal["auto"] | None = "auto",
+    site_icon: IconFetcher | Literal["auto"] | None = "auto",
+    wol_sender: Callable[[str, list[str]], None] | Literal["auto"] = "auto",
+    upload_folder: Callable[[], Path] | None = None,
 ) -> FastAPI:
     # Before anything touches the screen, so coordinates are physical pixels on Windows.
     dpi_mode = enable_dpi_awareness()
@@ -264,6 +285,10 @@ def create_app(  # noqa: PLR0913 - explicit knobs keep tests free of monkeypatch
             power_backend=power_backend,
             launcher=launcher,
             ai_provider=ai_provider,
+            app_source=app_source,
+            clipboard=clipboard,
+            site_icon=site_icon,
+            wol_sender=wol_sender,
         ),
     )
     log_event(log, "services_ready", input=services.input_available, dpi=dpi_mode)
@@ -281,7 +306,7 @@ def create_app(  # noqa: PLR0913 - explicit knobs keep tests free of monkeypatch
         docs_url=None,
         redoc_url=None,
         openapi_url=None,
-        lifespan=_make_lifespan(agent, opts),
+        lifespan=_make_lifespan(agent, opts, services.peers),
     )
     app.state.agent = agent
     app.state.services = services
@@ -307,6 +332,7 @@ def create_app(  # noqa: PLR0913 - explicit knobs keep tests free of monkeypatch
         port=opts.port,
     )
     register_desktop(app, app.state.desktop)
+    register_upload(app, agent, origin_allowed, upload_folder or downloads_folder)
 
     static_root = static_dir or STATIC_DIR
     if (static_root / "index.html").is_file():

@@ -95,6 +95,8 @@ const REPLY_TYPES: Partial<Record<ClientType, AgentType>> = {
   'power.prepare': 'power.token',
   'devices.list': 'devices.state',
   'ai.command': 'ai.plan',
+  'clipboard.get': 'clipboard.state',
+  'apps.list': 'apps.state',
 }
 
 /** Messages that are pointless to replay later: input happens now or never. */

@@ -37,9 +37,16 @@ export const TIMING = {
   longPressMs: 450,
   twoTapMaxMs: 200,
   twoTapMaxMovePx: 8,
+  /** Zoom step size once a pinch has started. */
   pinchRatio: 0.08,
   pinchDebounceMs: 120,
-  twoFingerScrollStartPx: 8,
+  /** A pinch starts only when the gap between the fingers changed by this many px... */
+  pinchStartPx: 24,
+  /** ...and by this fraction of the starting gap. */
+  pinchStartRatio: 0.15,
+  twoFingerScrollStartPx: 10,
+  /** Scroll wins when the fingers moved together this many times more than their gap changed. */
+  scrollDominance: 1.5,
   swipeMinPx: 40,
   edgeStripFraction: 0.12,
   inertiaDecay: 0.95,
@@ -267,15 +274,24 @@ export class TrackpadMachine {
     const actions: Action[] = []
 
     if (g.mode === 'multiPending') {
-      const ratio = g.baseDistance > 0 ? dist / g.baseDistance : 1
-      if (Math.abs(ratio - 1) > TIMING.pinchRatio) {
+      // Decide by comparing, in pixels, how far the fingers travelled together with how much
+      // the gap between them changed. A ratio alone misfires when the fingers start close
+      // together: a 4px drift on a 40px gap is already 10%.
+      const travel = Math.hypot(c.x - g.baseCentroid.x, c.y - g.baseCentroid.y)
+      const spreadChange = Math.abs(dist - g.baseDistance)
+      const isScroll =
+        travel > TIMING.twoFingerScrollStartPx && travel >= spreadChange * TIMING.scrollDominance
+      const isPinch =
+        !isScroll &&
+        spreadChange >= TIMING.pinchStartPx &&
+        spreadChange >= g.baseDistance * TIMING.pinchStartRatio &&
+        spreadChange > travel
+      if (isPinch) {
         g.mode = 'pinch'
-        actions.push({ kind: 'zoom', dir: ratio > 1 ? 'in' : 'out' })
+        actions.push({ kind: 'zoom', dir: dist > g.baseDistance ? 'in' : 'out' })
         g.baseDistance = dist
         g.lastZoomT = t
-      } else if (
-        Math.hypot(c.x - g.baseCentroid.x, c.y - g.baseCentroid.y) > TIMING.twoFingerScrollStartPx
-      ) {
+      } else if (isScroll) {
         g.mode = 'scroll'
         actions.push({
           kind: 'scroll',

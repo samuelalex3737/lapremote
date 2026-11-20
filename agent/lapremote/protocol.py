@@ -27,6 +27,10 @@ from pydantic.alias_generators import to_camel
 
 PROTOCOL_VERSION = 1
 MAX_MESSAGE_BYTES = 256 * 1024
+# Clipboard text either way, in characters.
+MAX_CLIPBOARD_CHARS = 100_000
+# A 96x96 PNG icon as a data URL stays well under this.
+MAX_ICON_DATA_URL = 60_000
 
 # --------------------------------------------------------------------------
 # Shared building blocks
@@ -139,6 +143,9 @@ class Shortcut(WireModel):
     url: str | None = Field(default=None, max_length=2048)
     app: str | None = Field(default=None, max_length=1024)
     icon: str | None = Field(default=None, max_length=40)
+    # A small PNG data URL made by the agent (the site's or the app's own icon). Anything a
+    # phone sends here is ignored: the agent sets it.
+    image: str | None = Field(default=None, max_length=MAX_ICON_DATA_URL)
 
     @model_validator(mode="after")
     def _target_matches_kind(self) -> Self:
@@ -197,6 +204,67 @@ class Scene(WireModel):
     id: IdStr
     name: str = Field(min_length=1, max_length=40)
     steps: list[SceneStep] = Field(min_length=1, max_length=50)
+
+
+class KeyButtonAction(WireModel):
+    type: Literal["key"]
+    key: KeyName
+    modifiers: list[Modifier] = Field(default_factory=list, max_length=4)
+
+
+class MediaButtonAction(WireModel):
+    type: Literal["media"]
+    command: Literal["toggle", "play", "pause", "next", "prev"]
+
+
+class SeekButtonAction(WireModel):
+    type: Literal["seek"]
+    by: float = Field(ge=-3600, le=3600, allow_inf_nan=False)
+
+
+class VolumeButtonAction(WireModel):
+    type: Literal["volume"]
+    delta: int = Field(ge=-100, le=100)
+
+
+class LaunchButtonAction(WireModel):
+    type: Literal["launch"]
+    shortcut_id: IdStr
+
+
+ButtonAction = Annotated[
+    KeyButtonAction
+    | MediaButtonAction
+    | SeekButtonAction
+    | VolumeButtonAction
+    | LaunchButtonAction,
+    Field(discriminator="type"),
+]
+
+
+class LayoutButton(WireModel):
+    label: str = Field(min_length=1, max_length=24)
+    icon: str | None = Field(default=None, max_length=40)
+    action: ButtonAction
+
+
+class LayoutMatch(WireModel):
+    """When the layout fits the app in front: any process name, site or title fragment."""
+
+    processes: list[Annotated[str, Field(min_length=1, max_length=64)]] = Field(
+        default_factory=list, max_length=10
+    )
+    sites: list[Site] = Field(default_factory=list, max_length=5)
+    titles: list[Annotated[str, Field(min_length=2, max_length=64)]] = Field(
+        default_factory=list, max_length=10
+    )
+
+
+class Layout(WireModel):
+    id: IdStr
+    name: str = Field(min_length=1, max_length=40)
+    match: LayoutMatch = Field(default_factory=LayoutMatch)
+    buttons: list[LayoutButton] = Field(min_length=1, max_length=24)
 
 
 class FeatureStatus(WireModel):
@@ -477,6 +545,33 @@ class ScenesDelete(WireModel):
     scene_id: IdStr
 
 
+class ClipboardSet(WireModel):
+    text: str = Field(min_length=1, max_length=MAX_CLIPBOARD_CHARS)
+
+
+class UrlOpen(WireModel):
+    url: str = Field(min_length=1, max_length=2048)
+
+    @model_validator(mode="after")
+    def _http_only(self) -> Self:
+        if not self.url.startswith(("http://", "https://")):
+            msg = "only http and https links can be opened"
+            raise ValueError(msg)
+        return self
+
+
+class LayoutsSave(WireModel):
+    layout: Layout
+
+
+class LayoutsDelete(WireModel):
+    layout_id: IdStr
+
+
+class WolWake(WireModel):
+    mac: str = Field(pattern=r"^([0-9A-F]{2}:){5}[0-9A-F]{2}$")
+
+
 class Ping(WireModel):
     t: float = Field(allow_inf_nan=False)
 
@@ -587,6 +682,37 @@ class ScenesState(WireModel):
     scenes: list[Scene]
 
 
+class LayoutsState(WireModel):
+    layouts: list[Layout]
+
+
+class ClipboardState(WireModel):
+    text: str = Field(max_length=MAX_CLIPBOARD_CHARS)
+    ts: Timestamp
+
+
+class AppInfo(WireModel):
+    app_id: str = Field(min_length=1, max_length=512)
+    name: str = Field(min_length=1, max_length=128)
+
+
+class AppsState(WireModel):
+    apps: list[AppInfo]
+
+
+class PeerInfo(WireModel):
+    peer_id: str = Field(min_length=1, max_length=64)
+    name: str = Field(min_length=1, max_length=64)
+    url: str = Field(min_length=1, max_length=256)
+    online: bool
+    mac: str | None
+    last_seen_at: Timestamp | None
+
+
+class PeersState(WireModel):
+    peers: list[PeerInfo]
+
+
 # --------------------------------------------------------------------------
 # Envelope and registries
 # --------------------------------------------------------------------------
@@ -660,6 +786,13 @@ CLIENT_MESSAGES: dict[str, ClientMessage] = {
     "scenes.save": ClientMessage(ScenesSave, "owner", "ack"),
     "scenes.delete": ClientMessage(ScenesDelete, "owner", "ack"),
     "ping": ClientMessage(Ping, "authed", "reply"),
+    "clipboard.set": ClientMessage(ClipboardSet, "owner", "ack"),
+    "clipboard.get": ClientMessage(Empty, "owner", "reply"),
+    "url.open": ClientMessage(UrlOpen, "owner", "ack"),
+    "apps.list": ClientMessage(Empty, "owner", "reply"),
+    "layouts.save": ClientMessage(LayoutsSave, "owner", "ack"),
+    "layouts.delete": ClientMessage(LayoutsDelete, "owner", "ack"),
+    "wol.wake": ClientMessage(WolWake, "owner", "ack"),
 }
 
 
@@ -698,6 +831,10 @@ AGENT_MESSAGES: dict[str, type[WireModel]] = {
     "power.token": PowerToken,
     "shortcuts.state": ShortcutsState,
     "scenes.state": ScenesState,
+    "layouts.state": LayoutsState,
+    "clipboard.state": ClipboardState,
+    "apps.state": AppsState,
+    "peers.state": PeersState,
 }
 
 # Binary preview frames: 8-byte big-endian header (uint32 frame, uint32 monitor) + JPEG.

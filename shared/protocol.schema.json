@@ -132,6 +132,33 @@
         }
       }
     },
+    "apps.state": {
+      "payload": {
+        "object": {
+          "apps": {
+            "required": true,
+            "schema": {
+              "array": {
+                "object": {
+                  "appId": {
+                    "required": true,
+                    "schema": {
+                      "type": "string"
+                    }
+                  },
+                  "name": {
+                    "required": true,
+                    "schema": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "auth.fail": {
       "payload": {
         "object": {
@@ -458,6 +485,24 @@
         }
       }
     },
+    "clipboard.state": {
+      "payload": {
+        "object": {
+          "text": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          "ts": {
+            "required": true,
+            "schema": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
     "context.state": {
       "payload": {
         "object": {
@@ -568,6 +613,305 @@
                         "guest",
                         "owner"
                       ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "layouts.state": {
+      "payload": {
+        "object": {
+          "layouts": {
+            "required": true,
+            "schema": {
+              "array": {
+                "object": {
+                  "buttons": {
+                    "required": true,
+                    "schema": {
+                      "array": {
+                        "object": {
+                          "action": {
+                            "required": true,
+                            "schema": {
+                              "union": [
+                                {
+                                  "object": {
+                                    "by": {
+                                      "required": true,
+                                      "schema": {
+                                        "type": "number"
+                                      }
+                                    },
+                                    "type": {
+                                      "required": true,
+                                      "schema": {
+                                        "enum": [
+                                          "seek"
+                                        ]
+                                      }
+                                    }
+                                  }
+                                },
+                                {
+                                  "object": {
+                                    "command": {
+                                      "required": true,
+                                      "schema": {
+                                        "enum": [
+                                          "next",
+                                          "pause",
+                                          "play",
+                                          "prev",
+                                          "toggle"
+                                        ]
+                                      }
+                                    },
+                                    "type": {
+                                      "required": true,
+                                      "schema": {
+                                        "enum": [
+                                          "media"
+                                        ]
+                                      }
+                                    }
+                                  }
+                                },
+                                {
+                                  "object": {
+                                    "delta": {
+                                      "required": true,
+                                      "schema": {
+                                        "type": "integer"
+                                      }
+                                    },
+                                    "type": {
+                                      "required": true,
+                                      "schema": {
+                                        "enum": [
+                                          "volume"
+                                        ]
+                                      }
+                                    }
+                                  }
+                                },
+                                {
+                                  "object": {
+                                    "key": {
+                                      "required": true,
+                                      "schema": {
+                                        "enum": [
+                                          "'",
+                                          ",",
+                                          "-",
+                                          ".",
+                                          "/",
+                                          "0",
+                                          "1",
+                                          "2",
+                                          "3",
+                                          "4",
+                                          "5",
+                                          "6",
+                                          "7",
+                                          "8",
+                                          "9",
+                                          ";",
+                                          "=",
+                                          "[",
+                                          "\\",
+                                          "]",
+                                          "`",
+                                          "a",
+                                          "b",
+                                          "backspace",
+                                          "c",
+                                          "capslock",
+                                          "d",
+                                          "delete",
+                                          "down",
+                                          "e",
+                                          "end",
+                                          "enter",
+                                          "esc",
+                                          "f",
+                                          "f1",
+                                          "f10",
+                                          "f11",
+                                          "f12",
+                                          "f13",
+                                          "f14",
+                                          "f15",
+                                          "f16",
+                                          "f17",
+                                          "f18",
+                                          "f19",
+                                          "f2",
+                                          "f20",
+                                          "f21",
+                                          "f22",
+                                          "f23",
+                                          "f24",
+                                          "f3",
+                                          "f4",
+                                          "f5",
+                                          "f6",
+                                          "f7",
+                                          "f8",
+                                          "f9",
+                                          "g",
+                                          "h",
+                                          "home",
+                                          "i",
+                                          "insert",
+                                          "j",
+                                          "k",
+                                          "l",
+                                          "left",
+                                          "m",
+                                          "media_next",
+                                          "media_play_pause",
+                                          "media_prev",
+                                          "menu",
+                                          "n",
+                                          "o",
+                                          "p",
+                                          "pagedown",
+                                          "pageup",
+                                          "printscreen",
+                                          "q",
+                                          "r",
+                                          "right",
+                                          "s",
+                                          "space",
+                                          "t",
+                                          "tab",
+                                          "u",
+                                          "up",
+                                          "v",
+                                          "volume_down",
+                                          "volume_mute",
+                                          "volume_up",
+                                          "w",
+                                          "x",
+                                          "y",
+                                          "z"
+                                        ]
+                                      }
+                                    },
+                                    "modifiers": {
+                                      "required": false,
+                                      "schema": {
+                                        "array": {
+                                          "enum": [
+                                            "alt",
+                                            "ctrl",
+                                            "meta",
+                                            "shift"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "type": {
+                                      "required": true,
+                                      "schema": {
+                                        "enum": [
+                                          "key"
+                                        ]
+                                      }
+                                    }
+                                  }
+                                },
+                                {
+                                  "object": {
+                                    "shortcutId": {
+                                      "required": true,
+                                      "schema": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "type": {
+                                      "required": true,
+                                      "schema": {
+                                        "enum": [
+                                          "launch"
+                                        ]
+                                      }
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          "icon": {
+                            "required": false,
+                            "schema": {
+                              "nullable": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "label": {
+                            "required": true,
+                            "schema": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "id": {
+                    "required": true,
+                    "schema": {
+                      "type": "string"
+                    }
+                  },
+                  "match": {
+                    "required": false,
+                    "schema": {
+                      "object": {
+                        "processes": {
+                          "required": false,
+                          "schema": {
+                            "array": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "sites": {
+                          "required": false,
+                          "schema": {
+                            "array": {
+                              "enum": [
+                                "generic",
+                                "netflix",
+                                "prime",
+                                "spotify_web",
+                                "youtube"
+                              ]
+                            }
+                          }
+                        },
+                        "titles": {
+                          "required": false,
+                          "schema": {
+                            "array": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "name": {
+                    "required": true,
+                    "schema": {
+                      "type": "string"
                     }
                   }
                 }
@@ -729,6 +1073,61 @@
             "required": true,
             "schema": {
               "type": "number"
+            }
+          }
+        }
+      }
+    },
+    "peers.state": {
+      "payload": {
+        "object": {
+          "peers": {
+            "required": true,
+            "schema": {
+              "array": {
+                "object": {
+                  "lastSeenAt": {
+                    "required": true,
+                    "schema": {
+                      "nullable": {
+                        "type": "number"
+                      }
+                    }
+                  },
+                  "mac": {
+                    "required": true,
+                    "schema": {
+                      "nullable": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "name": {
+                    "required": true,
+                    "schema": {
+                      "type": "string"
+                    }
+                  },
+                  "online": {
+                    "required": true,
+                    "schema": {
+                      "type": "boolean"
+                    }
+                  },
+                  "peerId": {
+                    "required": true,
+                    "schema": {
+                      "type": "string"
+                    }
+                  },
+                  "url": {
+                    "required": true,
+                    "schema": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
             }
           }
         }
@@ -1000,6 +1399,14 @@
                       "type": "string"
                     }
                   },
+                  "image": {
+                    "required": false,
+                    "schema": {
+                      "nullable": {
+                        "type": "string"
+                      }
+                    }
+                  },
                   "kind": {
                     "required": true,
                     "schema": {
@@ -1150,6 +1557,13 @@
       "reply": "ack",
       "role": "owner"
     },
+    "apps.list": {
+      "payload": {
+        "object": {}
+      },
+      "reply": "reply",
+      "role": "owner"
+    },
     "auth.pair": {
       "payload": {
         "object": {
@@ -1203,6 +1617,27 @@
             "required": true,
             "schema": {
               "type": "integer"
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "owner"
+    },
+    "clipboard.get": {
+      "payload": {
+        "object": {}
+      },
+      "reply": "reply",
+      "role": "owner"
+    },
+    "clipboard.set": {
+      "payload": {
+        "object": {
+          "text": {
+            "required": true,
+            "schema": {
+              "type": "string"
             }
           }
         }
@@ -1545,6 +1980,319 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "owner"
+    },
+    "layouts.delete": {
+      "payload": {
+        "object": {
+          "layoutId": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "owner"
+    },
+    "layouts.save": {
+      "payload": {
+        "object": {
+          "layout": {
+            "required": true,
+            "schema": {
+              "object": {
+                "buttons": {
+                  "required": true,
+                  "schema": {
+                    "array": {
+                      "object": {
+                        "action": {
+                          "required": true,
+                          "schema": {
+                            "union": [
+                              {
+                                "object": {
+                                  "by": {
+                                    "required": true,
+                                    "schema": {
+                                      "type": "number"
+                                    }
+                                  },
+                                  "type": {
+                                    "required": true,
+                                    "schema": {
+                                      "enum": [
+                                        "seek"
+                                      ]
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "object": {
+                                  "command": {
+                                    "required": true,
+                                    "schema": {
+                                      "enum": [
+                                        "next",
+                                        "pause",
+                                        "play",
+                                        "prev",
+                                        "toggle"
+                                      ]
+                                    }
+                                  },
+                                  "type": {
+                                    "required": true,
+                                    "schema": {
+                                      "enum": [
+                                        "media"
+                                      ]
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "object": {
+                                  "delta": {
+                                    "required": true,
+                                    "schema": {
+                                      "type": "integer"
+                                    }
+                                  },
+                                  "type": {
+                                    "required": true,
+                                    "schema": {
+                                      "enum": [
+                                        "volume"
+                                      ]
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "object": {
+                                  "key": {
+                                    "required": true,
+                                    "schema": {
+                                      "enum": [
+                                        "'",
+                                        ",",
+                                        "-",
+                                        ".",
+                                        "/",
+                                        "0",
+                                        "1",
+                                        "2",
+                                        "3",
+                                        "4",
+                                        "5",
+                                        "6",
+                                        "7",
+                                        "8",
+                                        "9",
+                                        ";",
+                                        "=",
+                                        "[",
+                                        "\\",
+                                        "]",
+                                        "`",
+                                        "a",
+                                        "b",
+                                        "backspace",
+                                        "c",
+                                        "capslock",
+                                        "d",
+                                        "delete",
+                                        "down",
+                                        "e",
+                                        "end",
+                                        "enter",
+                                        "esc",
+                                        "f",
+                                        "f1",
+                                        "f10",
+                                        "f11",
+                                        "f12",
+                                        "f13",
+                                        "f14",
+                                        "f15",
+                                        "f16",
+                                        "f17",
+                                        "f18",
+                                        "f19",
+                                        "f2",
+                                        "f20",
+                                        "f21",
+                                        "f22",
+                                        "f23",
+                                        "f24",
+                                        "f3",
+                                        "f4",
+                                        "f5",
+                                        "f6",
+                                        "f7",
+                                        "f8",
+                                        "f9",
+                                        "g",
+                                        "h",
+                                        "home",
+                                        "i",
+                                        "insert",
+                                        "j",
+                                        "k",
+                                        "l",
+                                        "left",
+                                        "m",
+                                        "media_next",
+                                        "media_play_pause",
+                                        "media_prev",
+                                        "menu",
+                                        "n",
+                                        "o",
+                                        "p",
+                                        "pagedown",
+                                        "pageup",
+                                        "printscreen",
+                                        "q",
+                                        "r",
+                                        "right",
+                                        "s",
+                                        "space",
+                                        "t",
+                                        "tab",
+                                        "u",
+                                        "up",
+                                        "v",
+                                        "volume_down",
+                                        "volume_mute",
+                                        "volume_up",
+                                        "w",
+                                        "x",
+                                        "y",
+                                        "z"
+                                      ]
+                                    }
+                                  },
+                                  "modifiers": {
+                                    "required": false,
+                                    "schema": {
+                                      "array": {
+                                        "enum": [
+                                          "alt",
+                                          "ctrl",
+                                          "meta",
+                                          "shift"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "type": {
+                                    "required": true,
+                                    "schema": {
+                                      "enum": [
+                                        "key"
+                                      ]
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "object": {
+                                  "shortcutId": {
+                                    "required": true,
+                                    "schema": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "type": {
+                                    "required": true,
+                                    "schema": {
+                                      "enum": [
+                                        "launch"
+                                      ]
+                                    }
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "icon": {
+                          "required": false,
+                          "schema": {
+                            "nullable": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "label": {
+                          "required": true,
+                          "schema": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "id": {
+                  "required": true,
+                  "schema": {
+                    "type": "string"
+                  }
+                },
+                "match": {
+                  "required": false,
+                  "schema": {
+                    "object": {
+                      "processes": {
+                        "required": false,
+                        "schema": {
+                          "array": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "sites": {
+                        "required": false,
+                        "schema": {
+                          "array": {
+                            "enum": [
+                              "generic",
+                              "netflix",
+                              "prime",
+                              "spotify_web",
+                              "youtube"
+                            ]
+                          }
+                        }
+                      },
+                      "titles": {
+                        "required": false,
+                        "schema": {
+                          "array": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "name": {
+                  "required": true,
+                  "schema": {
+                    "type": "string"
+                  }
+                }
+              }
             }
           }
         }
@@ -2016,6 +2764,14 @@
                     "type": "string"
                   }
                 },
+                "image": {
+                  "required": false,
+                  "schema": {
+                    "nullable": {
+                      "type": "string"
+                    }
+                  }
+                },
                 "kind": {
                   "required": true,
                   "schema": {
@@ -2089,6 +2845,20 @@
       "reply": "ack",
       "role": "owner"
     },
+    "url.open": {
+      "payload": {
+        "object": {
+          "url": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "owner"
+    },
     "volume.mute": {
       "payload": {
         "object": {
@@ -2130,6 +2900,20 @@
       },
       "reply": "ack",
       "role": "guest"
+    },
+    "wol.wake": {
+      "payload": {
+        "object": {
+          "mac": {
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "reply": "ack",
+      "role": "owner"
     }
   },
   "version": 1

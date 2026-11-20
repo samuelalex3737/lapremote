@@ -247,6 +247,17 @@ def register_desktop(app: FastAPI, ctx: DesktopContext) -> None:
         _guard_read(request)
         return JSONResponse(desktop_state(ctx, lan_ip()), headers={"Cache-Control": "no-store"})
 
+    @app.post("/desktop/api/clipboard/send", include_in_schema=False)
+    async def send_clipboard(request: Request) -> JSONResponse:
+        _guard_write(request)
+        try:
+            phones = await ctx.services.clipboard.send_to_phones()
+        except ActionError as exc:
+            return _error(exc.message)
+        if phones == 0:
+            return _error("No owner phone is connected right now.")
+        return JSONResponse({"ok": True, "phones": phones})
+
     @app.post("/desktop/api/pair/regenerate", include_in_schema=False)
     async def regenerate(request: Request) -> JSONResponse:
         _guard_write(request)

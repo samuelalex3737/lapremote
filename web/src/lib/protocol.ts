@@ -108,6 +108,8 @@ export const shortcutSchema = obj({
   url: z.string().max(2048).nullish(),
   app: z.string().max(1024).nullish(),
   icon: z.string().max(40).nullish(),
+  /** The site's or app's own icon as a PNG data URL, set by the laptop only. */
+  image: z.string().max(60_000).nullish(),
 }).superRefine((s, ctx) => {
   if (s.kind === 'url') {
     if (s.url == null || !/^https?:\/\//.test(s.url)) {
@@ -137,6 +139,39 @@ export const sceneSchema = obj({
   steps: z.array(sceneStepSchema).min(1).max(50),
 })
 export type Scene = z.infer<typeof sceneSchema>
+
+export const MEDIA_COMMANDS = ['toggle', 'play', 'pause', 'next', 'prev'] as const
+
+export const buttonActionSchema = z.discriminatedUnion('type', [
+  obj({ type: z.literal('key'), key: keyNameSchema, modifiers: z.array(modifierSchema).max(4).optional() }),
+  obj({ type: z.literal('media'), command: z.enum(MEDIA_COMMANDS) }),
+  obj({ type: z.literal('seek'), by: z.number().min(-3600).max(3600) }),
+  obj({ type: z.literal('volume'), delta: z.int().min(-100).max(100) }),
+  obj({ type: z.literal('launch'), shortcutId: idStr }),
+])
+export type ButtonAction = z.infer<typeof buttonActionSchema>
+
+export const layoutButtonSchema = obj({
+  label: z.string().min(1).max(24),
+  icon: z.string().max(40).nullish(),
+  action: buttonActionSchema,
+})
+export type LayoutButton = z.infer<typeof layoutButtonSchema>
+
+export const layoutMatchSchema = obj({
+  processes: z.array(z.string().min(1).max(64)).max(10).optional(),
+  sites: z.array(siteSchema).max(5).optional(),
+  titles: z.array(z.string().min(2).max(64)).max(10).optional(),
+})
+export type LayoutMatch = z.infer<typeof layoutMatchSchema>
+
+export const layoutSchema = obj({
+  id: idStr,
+  name: z.string().min(1).max(40),
+  match: layoutMatchSchema.optional(),
+  buttons: z.array(layoutButtonSchema).min(1).max(24),
+})
+export type Layout = z.infer<typeof layoutSchema>
 
 export const featureStatusSchema = obj({
   available: z.boolean(),
@@ -308,6 +343,13 @@ export const clientPayloads = {
   'scenes.save': obj({ scene: sceneSchema }),
   'scenes.delete': obj({ sceneId: idStr }),
   ping: obj({ t: z.number() }),
+  'clipboard.set': obj({ text: z.string().min(1).max(100_000) }),
+  'clipboard.get': obj({}),
+  'url.open': obj({ url: z.string().min(1).max(2048).regex(/^https?:\/\//) }),
+  'apps.list': obj({}),
+  'layouts.save': obj({ layout: layoutSchema }),
+  'layouts.delete': obj({ layoutId: idStr }),
+  'wol.wake': obj({ mac: z.string().regex(/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/) }),
 } as const
 
 export type ClientType = keyof typeof clientPayloads
@@ -363,6 +405,13 @@ export const CLIENT_RULES: Record<ClientType, { role: RequiredRole; reply: Reply
   'scenes.save': { role: o, reply: 'ack' },
   'scenes.delete': { role: o, reply: 'ack' },
   ping: { role: 'authed', reply: 'reply' },
+  'clipboard.set': { role: o, reply: 'ack' },
+  'clipboard.get': { role: o, reply: 'reply' },
+  'url.open': { role: o, reply: 'ack' },
+  'apps.list': { role: o, reply: 'reply' },
+  'layouts.save': { role: o, reply: 'ack' },
+  'layouts.delete': { role: o, reply: 'ack' },
+  'wol.wake': { role: o, reply: 'ack' },
 }
 
 // ---------------------------------------------------------------- agent -> client payloads
@@ -422,6 +471,21 @@ export const agentPayloads = {
   }),
   'shortcuts.state': obj({ shortcuts: z.array(shortcutSchema) }),
   'scenes.state': obj({ scenes: z.array(sceneSchema) }),
+  'layouts.state': obj({ layouts: z.array(layoutSchema) }),
+  'clipboard.state': obj({ text: z.string().max(100_000), ts: timestamp }),
+  'apps.state': obj({ apps: z.array(obj({ appId: z.string().min(1).max(512), name: z.string().min(1).max(128) })) }),
+  'peers.state': obj({
+    peers: z.array(
+      obj({
+        peerId: z.string().min(1).max(64),
+        name: z.string().min(1).max(64),
+        url: z.string().min(1).max(256),
+        online: z.boolean(),
+        mac: z.string().nullable(),
+        lastSeenAt: timestamp.nullable(),
+      }),
+    ),
+  }),
 } as const
 
 export type AgentType = keyof typeof agentPayloads
