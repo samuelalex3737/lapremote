@@ -217,12 +217,12 @@ export function ScenesScreen() {
   if (scenes === null) return <Skeleton label="Loading scenes" className="h-40" />
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 short:gap-2 land:grid land:grid-cols-2 land:gap-2">
       {scenes.length === 0 ? (
         <EmptyState icon={<Clapperboard className="h-9 w-9" />} title="No scenes yet" body="A scene sets volume, brightness and opens things in one tap." />
       ) : (
         scenes.map((scene) => (
-          <Card key={scene.id} className="flex items-center gap-3">
+          <Card key={scene.id} className="flex items-center gap-3 land:py-2">
             <div className="min-w-0 flex-1">
               <p className="truncate font-semibold">{scene.name}</p>
               <p className="truncate text-sm text-[var(--color-text-secondary)]">
@@ -245,7 +245,7 @@ export function ScenesScreen() {
           </Card>
         ))
       )}
-      <Button size="lg" icon={<Plus className="h-5 w-5" aria-hidden="true" />} onClick={() => { setEditing({ scene: null }) }}>
+      <Button size="lg" className="land:col-span-2 land:min-h-11" icon={<Plus className="h-5 w-5" aria-hidden="true" />} onClick={() => { setEditing({ scene: null }) }}>
         New scene
       </Button>
       <Sheet open={editing !== null} title={editing?.scene != null ? 'Edit scene' : 'New scene'} onClose={() => { setEditing(null) }}>

@@ -84,7 +84,8 @@ test('the real agent streams this laptop screen and taps reach the input engine'
   await openPaired(page, { tab: 'trackpad' })
   await page.getByRole('radio', { name: 'Screen' }).click()
   const image = page.getByRole('img', { name: 'Laptop screen' })
-  await expect(image).toBeVisible()
+  // The first real capture can take a few seconds while the whole suite runs in parallel.
+  await expect(image).toBeVisible({ timeout: 15_000 })
   await expect.poll(() => image.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(480)
   const box = await page.getByTestId('screen-preview').boundingBox()
   if (box === null) throw new Error('no preview box')

@@ -65,7 +65,7 @@ export function HoldButton({ label, holdMs = 1200, onConfirm, icon, tone = 'dang
       type="button"
       disabled={disabled}
       aria-label={`${label} (hold to confirm)`}
-      className="relative flex min-h-[72px] w-full touch-none select-none items-center gap-4 rounded-[var(--radius-card)] bg-[var(--color-surface)] px-4 text-left ring-1 ring-inset ring-[var(--color-line)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] disabled:opacity-40"
+      className="relative flex min-h-16 w-full touch-none land:min-h-14 select-none items-center gap-3 rounded-[var(--radius-card)] bg-[var(--color-surface)] px-3 text-left ring-1 ring-inset ring-[var(--color-line)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] disabled:opacity-40"
       onPointerDown={(e) => {
         e.currentTarget.setPointerCapture(e.pointerId)
         begin()
@@ -84,7 +84,7 @@ export function HoldButton({ label, holdMs = 1200, onConfirm, icon, tone = 'dang
         e.preventDefault()
       }}
     >
-      <span className="relative flex h-14 w-14 shrink-0 items-center justify-center">
+      <span className="relative flex h-12 w-12 shrink-0 items-center justify-center">
         <svg viewBox="0 0 60 60" className="absolute inset-0 -rotate-90" aria-hidden="true">
           <circle cx="30" cy="30" r={RADIUS} fill="none" stroke="var(--color-line-strong)" strokeWidth="4" />
           <circle

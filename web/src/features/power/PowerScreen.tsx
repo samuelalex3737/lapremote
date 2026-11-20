@@ -52,8 +52,10 @@ export function PowerScreen() {
     )
   }
   return (
-    <div className="flex flex-col gap-3">
-      <Brightness />
+    <div className="flex flex-col gap-3 short:gap-2 land:grid land:grid-cols-3 land:gap-2">
+      <div className="land:row-span-2 land:flex land:flex-col land:[&>*]:flex-1">
+        <Brightness />
+      </div>
       <FeatureGate feature="power" title="Power controls">
         {ACTIONS.map((a) => (
           <HoldButton

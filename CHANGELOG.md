@@ -4,6 +4,29 @@ All notable changes to LapRemote. Versions follow [Semantic Versioning](https://
 
 ## [Unreleased]
 
+### Windows Smart App Control
+
+- The agent's environment now prefers an installed, signed Python (`python-preference = "system"`):
+  Smart App Control started blocking a DLL in uv's downloaded Python build. README explains the fix.
+
+### Fits any screen
+
+- Every main screen (Now Playing in all three modes, Trackpad, Keys, Launch, More, Power, Timer,
+  Scenes, Ask LapRemote) fits without scrolling on a small phone (360 x 600), an iPhone in Safari
+  (393 x 659), a phone in Chrome (390 x 720), a big phone (430 x 860), a tablet (768 x 1024) and
+  phones held sideways (780 x 360 and 640 x 320). A Playwright test checks all 7 sizes on iPhone 15
+  and Pixel 8 emulation.
+- Held sideways, the tab bar becomes a side rail and screens switch to two or three columns
+  (artwork beside controls, keys in three groups, five launcher tiles per row, power buttons
+  beside brightness). Short screens get tighter spacing; tablets center the app.
+- One header row: the connection status, or a status dot plus the "in focus" suggestion. The
+  "Can't reach your laptop" message lives in the status pill instead of a separate bar.
+- Now Playing: the artwork takes only the space that's left; smaller title, play button and
+  volume card.
+- Keys: inline Send button, arrows on one row, compact combo builder.
+- Launch: three columns of shorter tiles (labels wrap to two lines); power buttons slightly smaller;
+  slimmer tab bar.
+
 ## [1.0.0] - 2026-11-20
 
 First complete release. Tested on Windows 11; macOS and Linux are implemented but untested (see

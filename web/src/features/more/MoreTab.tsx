@@ -66,7 +66,7 @@ export function MoreTab() {
 
   if (entry !== undefined) {
     return (
-      <div className="flex flex-col gap-4 pt-2">
+      <div className="flex flex-col gap-3 pt-1 short:gap-2 land:gap-2">
         <div className="flex items-center gap-2">
           <IconButton
             label="Back"
@@ -77,7 +77,7 @@ export function MoreTab() {
           >
             <ChevronLeft className="h-6 w-6" />
           </IconButton>
-          <h1 className="text-2xl font-semibold">{entry.title}</h1>
+          <h1 className="text-xl font-semibold">{entry.title}</h1>
         </div>
         <Screen entry={entry} />
       </div>
@@ -85,9 +85,9 @@ export function MoreTab() {
   }
 
   return (
-    <div className="flex flex-col gap-4 pt-2">
-      <h1 className="text-2xl font-semibold">More</h1>
-      <ul className="divide-y divide-[var(--color-line)] overflow-hidden rounded-[var(--radius-card)] bg-[var(--color-surface)] ring-1 ring-inset ring-[var(--color-line)]">
+    <div className="flex flex-col gap-3 pt-1">
+      <h1 className="text-xl font-semibold">More</h1>
+      <ul className="divide-y divide-[var(--color-line)] overflow-hidden rounded-[var(--radius-card)] bg-[var(--color-surface)] ring-1 ring-inset ring-[var(--color-line)] land:grid land:grid-cols-2 land:divide-y-0">
         {ENTRIES.map((e) => {
           const status = e.feature !== undefined ? features?.[e.feature] : undefined
           const unavailable = status !== undefined && !status.available

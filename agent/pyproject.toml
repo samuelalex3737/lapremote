@@ -102,6 +102,9 @@ addopts = "-ra --strict-markers"
 # Smart App Control blocks zeroconf's unsigned Cython extensions on Windows,
 # so it is built from source in its pure-Python mode instead.
 no-binary-package = ["zeroconf"]
+# Prefer an installed, signed Python (python.org) over uv's downloaded builds: Smart App
+# Control can block the unsigned DLLs in those builds (it blocked asyncio's _overlapped).
+python-preference = "system"
 
 [tool.uv.extra-build-variables]
 zeroconf = { SKIP_CYTHON = "1" }

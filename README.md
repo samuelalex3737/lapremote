@@ -19,13 +19,37 @@ runs entirely on your local Wi-Fi. No cloud, no accounts, 100% free and open sou
 Works today on Windows 11 (tested). macOS and Linux code paths exist but are untested; see the
 [platform matrix](docs/PLATFORM_MATRIX.md).
 
+![Now Playing, Movie mode, Keys, Launch, Power and the trackpad on a phone](docs/images/phone-screens.png)
+
+![Movie controls and Power held sideways](docs/images/landscape.png)
+
+<sub>Screenshots from the automated test run (scripted laptop data). Every screen fits without
+scrolling on small and large phones, tablets and phones held sideways.</sub>
+
+## How it works
+
+```
+ Phone (browser or installed PWA)                 Laptop
+ React 19 + TypeScript  --- WebSocket (LAN) --->  Python agent (FastAPI)
+ Now Playing, trackpad,                            input (pynput), media sessions,
+ keys, launcher, AI ...   <-- state, preview ---   volume, screen preview, power,
+                                                   tray + local dashboard, AI planner
+```
+
+- The phone app is served by the agent itself; nothing is installed on the phone.
+- Pairing uses a one-time code; every message after that needs a per-device token.
+- Every action comes from a fixed allowlist. Nothing a phone (or the AI) sends can run a command.
+- Protocol, threat model and design are in [docs/](docs/).
+
 ## Install
 
-You need [uv](https://docs.astral.sh/uv/) (it installs Python 3.12 for you) and
-[Node.js](https://nodejs.org/) 22 or newer, to build the phone app once.
+You need [uv](https://docs.astral.sh/uv/), Python 3.12 and [Node.js](https://nodejs.org/) 22
+or newer (Node only to build the phone app once). On Windows, install Python 3.12 from
+[python.org](https://www.python.org/downloads/) (or `winget install Python.Python.3.12`): it is
+code-signed, so Smart App Control lets it run. uv uses it automatically.
 
 ```bash
-git clone <this repo> lapremote && cd lapremote
+git clone https://github.com/samuelalex3737/lapremote.git && cd lapremote
 cd agent && uv sync && cd ..
 uv run --project agent python scripts/build_web.py
 ```
@@ -89,6 +113,7 @@ notes: [docs/AI.md](docs/AI.md).
 | Ask LapRemote says Ollama isn't running | Start Ollama, run `ollama pull <model>`, then reopen the app on the phone. |
 | AI answers are slow | A 7B model on a laptop CPU takes about 10 to 20 seconds. Try `qwen2.5:3b` or Groq. |
 | No mic button or air mouse | Those need HTTPS: see docs/HTTPS.md. |
+| "An Application Control policy has blocked this file" | Windows Smart App Control is blocking an unsigned Python build. Install Python 3.12 from python.org, delete `agent/.venv`, and run `uv sync` again. |
 | `config.json` is broken | LapRemote stops and says so. Fix the file or delete it to get the defaults back. |
 | Logs | Tray > Open logs folder, or `~/.lapremote/logs/agent.log` (typed text and tokens are never logged). |
 

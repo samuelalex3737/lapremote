@@ -53,7 +53,12 @@ function effectiveMode(mode: PlayerMode): Mode {
 function SessionChips({ sessions, currentId }: { sessions: MediaSession[]; currentId: string | null }) {
   if (sessions.length < 2) return null
   return (
-    <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1" data-no-swipe role="tablist" aria-label="Players">
+    <div
+      className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 land:mx-0 land:min-w-0 land:px-0 land:pb-0"
+      data-no-swipe
+      role="tablist"
+      aria-label="Players"
+    >
       {sessions.map((s) => {
         const active = s.id === currentId
         return (
@@ -95,7 +100,7 @@ function Transport({ session, big = false }: { session: MediaSession; big?: bool
         label={playing ? 'Pause' : 'Play'}
         size="xl"
         variant="solid"
-        className={big ? 'h-28 w-28' : ''}
+        className={big ? 'h-24 w-24 short:h-20 short:w-20 land:h-20 land:w-20' : ''}
         onClick={() => { client.send('media.toggle', target) }}
       >
         {playing ? <Pause className="h-9 w-9" fill="currentColor" /> : <Play className="ml-1 h-9 w-9" fill="currentColor" />}
@@ -114,7 +119,7 @@ function VolumeCard() {
   const { volume } = useMedia()
   if (volume === null) return null
   return (
-    <Card className="flex items-center gap-3">
+    <Card className="flex items-center gap-3 py-1.5">
       <IconButton
         label={volume.muted ? 'Unmute' : 'Mute'}
         onClick={() => {
@@ -141,29 +146,55 @@ function VolumeCard() {
 
 function TrackInfo({ session }: { session: MediaSession }) {
   return (
-    <div className="flex flex-col items-start gap-1.5">
+    <div className="flex flex-col items-start gap-1">
       <AppBadge session={session} />
-      <h1 className="w-full truncate text-2xl font-semibold">{session.title || 'Unknown title'}</h1>
+      <h1 className="w-full truncate text-xl font-semibold">{session.title || 'Unknown title'}</h1>
       {session.artist !== '' && <p className="w-full truncate text-base text-[var(--color-text-secondary)]">{session.artist}</p>}
+    </div>
+  )
+}
+
+/**
+ * Stacked in portrait. Side by side when the phone is held sideways, so the controls never
+ * fall below the fold. `grow` marks the side that takes the spare height in portrait.
+ */
+function Split({ left, right, grow }: { left: React.ReactNode; right: React.ReactNode; grow: 'left' | 'right' }) {
+  const side = 'flex min-h-0 flex-col gap-3 short:gap-2 land:flex-1 land:justify-center'
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-3 short:gap-2 land:flex-row land:gap-5">
+      <div className={`${side} ${grow === 'left' ? 'flex-1' : ''}`}>{left}</div>
+      <div className={`${side} ${grow === 'right' ? 'flex-1' : ''}`}>{right}</div>
     </div>
   )
 }
 
 function MusicView({ session, now }: { session: MediaSession; now: number }) {
   return (
-    <>
-      <Artwork session={session} image={mediaStore.artwork.get(session.artworkId)} />
-      <TrackInfo session={session} />
-      <Scrubber
-        position={positionAt(session, now)}
-        duration={session.duration}
-        canSeek={session.canSeek}
-        onSeek={(to) => {
-          client.send('media.seek', { sessionId: session.id, to })
-        }}
-      />
-      <Transport session={session} />
-    </>
+    <Split
+      grow="left"
+      left={
+        <>
+          {/* The artwork takes whatever height is left, so the controls always fit on screen. */}
+          <div className="flex min-h-[72px] flex-1 items-center justify-center">
+            <Artwork session={session} image={mediaStore.artwork.get(session.artworkId)} />
+          </div>
+          <TrackInfo session={session} />
+        </>
+      }
+      right={
+        <>
+          <Scrubber
+            position={positionAt(session, now)}
+            duration={session.duration}
+            canSeek={session.canSeek}
+            onSeek={(to) => {
+              client.send('media.seek', { sessionId: session.id, to })
+            }}
+          />
+          <Transport session={session} />
+        </>
+      }
+    />
   )
 }
 
@@ -171,7 +202,7 @@ function KeyAction({ label, keyName, icon }: { label: string; keyName: KeyName; 
   return (
     <Button
       size="lg"
-      className="flex-1"
+      className="flex-1 short:min-h-11 land:min-h-11"
       icon={icon}
       onClick={() => {
         client.send('key.press', { key: keyName, modifiers: [] })
@@ -187,31 +218,40 @@ function MovieView({ session, now }: { session: MediaSession; now: number }) {
   const owner = useConnection((s) => s.session?.role === 'owner')
   const keys = movieKeys(context)
   return (
-    <>
-      <TrackInfo session={session} />
-      <Scrubber
-        position={positionAt(session, now)}
-        duration={session.duration}
-        canSeek={session.canSeek}
-        onSeek={(to) => {
-          client.send('media.seek', { sessionId: session.id, to })
-        }}
-      />
-      <div className="py-6">
-        <Transport session={session} big />
-      </div>
-      {owner && (
-        <div className="flex flex-wrap gap-3">
-          <KeyAction label="Fullscreen" keyName={keys.fullscreen} icon={<Expand className="h-5 w-5" aria-hidden="true" />} />
-          {keys.subtitles !== null && (
-            <KeyAction label="Subtitles" keyName={keys.subtitles} icon={<Captions className="h-5 w-5" aria-hidden="true" />} />
+    <Split
+      grow="right"
+      left={
+        <>
+          <TrackInfo session={session} />
+          <Scrubber
+            position={positionAt(session, now)}
+            duration={session.duration}
+            canSeek={session.canSeek}
+            onSeek={(to) => {
+              client.send('media.seek', { sessionId: session.id, to })
+            }}
+          />
+        </>
+      }
+      right={
+        <>
+          <div className="flex flex-1 flex-col justify-center py-2 short:py-0 land:flex-none land:py-0">
+            <Transport session={session} big />
+          </div>
+          {owner && (
+            <div className="flex flex-wrap gap-3 short:gap-2">
+              <KeyAction label="Fullscreen" keyName={keys.fullscreen} icon={<Expand className="h-5 w-5" aria-hidden="true" />} />
+              {keys.subtitles !== null && (
+                <KeyAction label="Subtitles" keyName={keys.subtitles} icon={<Captions className="h-5 w-5" aria-hidden="true" />} />
+              )}
+              {keys.skipIntro !== null && (
+                <KeyAction label="Skip intro" keyName={keys.skipIntro} icon={<SkipForward className="h-5 w-5" aria-hidden="true" />} />
+              )}
+            </div>
           )}
-          {keys.skipIntro !== null && (
-            <KeyAction label="Skip intro" keyName={keys.skipIntro} icon={<SkipForward className="h-5 w-5" aria-hidden="true" />} />
-          )}
-        </div>
-      )}
-    </>
+        </>
+      }
+    />
   )
 }
 
@@ -233,21 +273,25 @@ export function NowPlayingTab() {
   }
 
   return (
-    <div className="flex flex-col gap-5 pt-2">
+    <div className="flex min-h-0 flex-1 flex-col gap-3 pt-1 short:gap-2 land:gap-2">
       <TimerPill />
-      <SegmentedControl
-        label="Controls"
-        options={MODES}
-        value={view}
-        onChange={(m) => {
-          setMode(m)
-        }}
-      />
+      <div className="flex flex-col gap-3 short:gap-2 land:flex-row land:items-center land:gap-3">
+        <div className="land:w-1/2 land:shrink-0">
+          <SegmentedControl
+            label="Controls"
+            options={MODES}
+            value={view}
+            onChange={(m) => {
+              setMode(m)
+            }}
+          />
+        </div>
+        {view !== 'presentation' && <SessionChips sessions={media.sessions} currentId={session?.id ?? null} />}
+      </div>
       {view === 'presentation' ? (
         <PresentationView />
       ) : (
         <>
-          <SessionChips sessions={media.sessions} currentId={session?.id ?? null} />
           {session === null ? (
             <EmptyState
               icon={view === 'movie' ? <Monitor className="h-10 w-10" /> : <Music2 className="h-10 w-10" />}

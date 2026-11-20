@@ -1,6 +1,11 @@
 @import '@fontsource-variable/inter';
 @import 'tailwindcss';
 
+/* Screen shapes. `short`: a portrait screen with little height (small phones, browser bars).
+   `land`: a phone held sideways, where height is the scarce thing and width is plenty. */
+@custom-variant short (@media (orientation: portrait) and (max-height: 680px));
+@custom-variant land (@media (orientation: landscape) and (max-height: 560px));
+
 /*
  * LapRemote design tokens. Dark, premium, glass surfaces.
  * Contrast (on --color-bg #07070b): text 18.9:1, secondary 7.9:1, tertiary 5.1:1 (all AA).

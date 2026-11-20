@@ -19,15 +19,18 @@ const START: Record<HostOs, { label: string; key: KeyName; modifiers: Modifier[]
   linux: { label: 'Activities', key: 's', modifiers: ['meta'] },
 }
 
-const ARROWS: { key: KeyName; label: string; Icon: LucideIcon; area: string }[] = [
-  { key: 'up', label: 'Up', Icon: ArrowUp, area: 'col-start-2' },
-  { key: 'left', label: 'Left', Icon: ArrowLeft, area: 'col-start-1 row-start-2' },
-  { key: 'down', label: 'Down', Icon: ArrowDown, area: 'col-start-2 row-start-2' },
-  { key: 'right', label: 'Right', Icon: ArrowRight, area: 'col-start-3 row-start-2' },
+const ARROWS: { key: KeyName; label: string; Icon: LucideIcon }[] = [
+  { key: 'left', label: 'Left', Icon: ArrowLeft },
+  { key: 'up', label: 'Up', Icon: ArrowUp },
+  { key: 'down', label: 'Down', Icon: ArrowDown },
+  { key: 'right', label: 'Right', Icon: ArrowRight },
 ]
 
+// The keys come in three groups: stacked in portrait, side by side when the phone is sideways.
+const GROUP = 'flex min-w-0 flex-col gap-2.5 short:gap-2 land:flex-1'
+
 const keyClass =
-  'flex min-h-12 min-w-12 items-center justify-center rounded-[var(--radius-control)] bg-[var(--color-surface-strong)] px-3 text-sm font-medium ring-1 ring-inset ring-[var(--color-line)] outline-none active:bg-[var(--color-line-strong)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]'
+  'flex min-h-11 min-w-11 items-center justify-center rounded-[var(--radius-control)] bg-[var(--color-surface-strong)] px-3 text-sm font-medium ring-1 ring-inset ring-[var(--color-line)] outline-none active:bg-[var(--color-line-strong)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]'
 
 function KeyButton(props: { k: KeyName; label: string; Icon?: LucideIcon | undefined; modifiers?: Modifier[]; className?: string }) {
   const Icon = props.Icon
@@ -55,21 +58,27 @@ function SendBox() {
     setText('')
   }
   return (
-    <form onSubmit={submit} className="flex flex-col gap-3">
-      <label className="flex flex-col gap-2">
-        <span className="text-sm font-medium">Type, then send</span>
+    <form onSubmit={submit} className="flex items-stretch gap-2 land:flex-col">
+      <label className="flex min-w-0 flex-1">
+        <span className="sr-only">Type, then send</span>
         <textarea
           value={text}
           maxLength={2000}
-          rows={3}
+          rows={2}
           onChange={(e) => {
             setText(e.target.value)
           }}
           placeholder="Text is typed where the cursor is"
-          className="min-h-24 resize-none rounded-[var(--radius-control)] bg-[var(--color-surface)] px-4 py-3 text-base ring-1 ring-inset ring-[var(--color-line)] outline-none placeholder:text-[var(--color-text-tertiary)] focus:ring-2 focus:ring-[var(--color-accent)]"
+          className="min-h-14 w-full resize-none rounded-[var(--radius-control)] short:min-h-12 short:py-2 land:min-h-12 land:py-2 bg-[var(--color-surface)] px-4 py-2.5 text-base ring-1 ring-inset ring-[var(--color-line)] outline-none placeholder:text-[var(--color-text-tertiary)] focus:ring-2 focus:ring-[var(--color-accent)]"
         />
       </label>
-      <Button type="submit" variant="primary" size="lg" disabled={text.length === 0} icon={<Send className="h-5 w-5" aria-hidden="true" />}>
+      <Button
+        type="submit"
+        variant="primary"
+        className="shrink-0 rounded-[var(--radius-control)]"
+        disabled={text.length === 0}
+        icon={<Send className="h-5 w-5" aria-hidden="true" />}
+      >
         Send
       </Button>
     </form>
@@ -81,8 +90,8 @@ function LiveBox() {
   const [text, setText] = useState('')
   const previous = useRef('')
   return (
-    <label className="flex flex-col gap-2">
-      <span className="text-sm font-medium">Live typing</span>
+    <label className="flex flex-col">
+      <span className="sr-only">Live typing</span>
       <input
         value={text}
         autoCapitalize="off"
@@ -108,7 +117,7 @@ function LiveBox() {
             press('backspace')
           }
         }}
-        className="min-h-14 rounded-[var(--radius-control)] bg-[var(--color-surface)] px-4 text-base ring-1 ring-inset ring-[var(--color-line)] outline-none placeholder:text-[var(--color-text-tertiary)] focus:ring-2 focus:ring-[var(--color-accent)]"
+        className="min-h-12 rounded-[var(--radius-control)] bg-[var(--color-surface)] px-4 text-base ring-1 ring-inset ring-[var(--color-line)] outline-none placeholder:text-[var(--color-text-tertiary)] focus:ring-2 focus:ring-[var(--color-accent)]"
       />
     </label>
   )
@@ -121,8 +130,10 @@ function ComboBuilder({ os }: { os: HostOs }) {
     setMods((cur) => (cur.includes(m) ? cur.filter((x) => x !== m) : [...cur, m]))
   }
   return (
-    <Card className="flex flex-col gap-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]">Key combo</h2>
+    <Card className="flex flex-col gap-2 p-3 short:p-2.5 land:p-2.5">
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-secondary)] short:sr-only land:sr-only">
+        Key combo <span className="font-normal normal-case">- pick modifiers, then a key</span>
+      </h2>
       <div className="flex gap-2" role="group" aria-label="Modifiers">
         {(['ctrl', 'alt', 'shift', 'meta'] as const).map((m) => (
           <button
@@ -138,7 +149,7 @@ function ComboBuilder({ os }: { os: HostOs }) {
           </button>
         ))}
       </div>
-      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1" data-no-swipe aria-label="Then press">
+      <div className="-mx-3 flex gap-2 overflow-x-auto px-3" data-no-swipe aria-label="Then press">
         {COMBO_KEYS.map((k) => (
           <button
             key={k}
@@ -153,7 +164,6 @@ function ComboBuilder({ os }: { os: HostOs }) {
           </button>
         ))}
       </div>
-      <p className="text-xs text-[var(--color-text-secondary)]">Pick modifiers, then tap a key.</p>
     </Card>
   )
 }
@@ -166,44 +176,53 @@ export function KeysTab() {
   const start = START[os]
 
   return (
-    <div className="flex flex-col gap-4 pt-2">
-      <h1 className="text-2xl font-semibold">Keys</h1>
+    <div className="flex flex-col gap-2.5 pt-1 short:gap-2">
+      <h1 className="sr-only">Keys</h1>
       {session.role !== 'owner' ? (
         <Card>
           <p className="text-[var(--color-text-secondary)]">Only the owner can type on this laptop.</p>
         </Card>
       ) : (
         <FeatureGate feature="input" title="Typing">
-          <SegmentedControl
-            label="Typing mode"
-            options={[
-              { value: 'send', label: 'Send' },
-              { value: 'live', label: 'Live' },
-            ]}
-            value={mode}
-            onChange={setMode}
-          />
-          {mode === 'send' ? <SendBox /> : <LiveBox />}
-          <div className="grid grid-cols-4 gap-2">
-            <KeyButton k="esc" label="Esc" />
-            <KeyButton k="tab" label="Tab" />
-            <KeyButton k="backspace" label="Backspace" Icon={Delete} />
-            <KeyButton k="enter" label="Enter" Icon={CornerDownLeft} />
-            <KeyButton k="space" label="Space" Icon={Space} className="col-span-2" />
-            <KeyButton k="f" label="F" />
-            <KeyButton k={start.key} label={start.label} modifiers={start.modifiers} />
+          <div className="flex flex-col gap-2.5 short:gap-2 land:flex-row land:items-start land:gap-4">
+            <div className={GROUP}>
+              <SegmentedControl
+                label="Typing mode"
+                options={[
+                  { value: 'send', label: 'Send' },
+                  { value: 'live', label: 'Live' },
+                ]}
+                value={mode}
+                onChange={setMode}
+              />
+              {mode === 'send' ? <SendBox /> : <LiveBox />}
+            </div>
+            <div className={GROUP}>
+              <div className="grid grid-cols-4 gap-2">
+                <KeyButton k="esc" label="Esc" />
+                <KeyButton k="tab" label="Tab" />
+                <KeyButton k="backspace" label="Backspace" Icon={Delete} />
+                <KeyButton k="enter" label="Enter" Icon={CornerDownLeft} />
+                <KeyButton k="space" label="Space" Icon={Space} className="col-span-2" />
+                <KeyButton k="f" label="F" />
+                <KeyButton k={start.key} label={start.label} modifiers={start.modifiers} />
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {ARROWS.map((a) => (
+                  <KeyButton key={a.key} k={a.key} label={a.label} Icon={a.Icon} />
+                ))}
+              </div>
+            </div>
+            <div className={GROUP}>
+              {/* Two rows of shortcuts, or one scrolling row when the screen is short. */}
+              <div className="grid grid-cols-3 gap-2 short:-mx-4 short:flex short:overflow-x-auto short:px-4" data-no-swipe>
+                {commonShortcuts(os).map((c) => (
+                  <KeyButton key={c.label} k={c.key} label={c.label} modifiers={c.modifiers} className="short:shrink-0" />
+                ))}
+              </div>
+              <ComboBuilder os={os} />
+            </div>
           </div>
-          <div className="mx-auto grid w-full max-w-64 grid-cols-3 grid-rows-2 gap-2">
-            {ARROWS.map((a) => (
-              <KeyButton key={a.key} k={a.key} label={a.label} Icon={a.Icon} className={a.area} />
-            ))}
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            {commonShortcuts(os).map((c) => (
-              <KeyButton key={c.label} k={c.key} label={c.label} modifiers={c.modifiers} />
-            ))}
-          </div>
-          <ComboBuilder os={os} />
         </FeatureGate>
       )}
     </div>

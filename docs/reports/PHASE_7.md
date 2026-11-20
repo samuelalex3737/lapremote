@@ -28,7 +28,7 @@ $ npx playwright test tests/e2e/phase7.spec.ts
 ```
 Real laptop (no power action was run on purpose):
 ```
-brave exe: C:\Users\samue\AppData\Local\BraveSoftware\Brave-Browser\Application\brave.exe
+brave exe: C:\Users\<you>\AppData\Local\BraveSoftware\Brave-Browser\Application\brave.exe
 open_url: started                                   (an example.org tab opened in Brave)
 brightness set to its current value 80 -> 80 (157 ms)
 ```

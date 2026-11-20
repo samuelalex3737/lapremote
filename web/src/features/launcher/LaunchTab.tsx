@@ -169,9 +169,9 @@ export function LaunchTab() {
   }
 
   return (
-    <div className="flex flex-col gap-4 pt-2">
+    <div className="flex flex-col gap-3 pt-1">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">Launch</h1>
+        <h1 className="text-xl font-semibold">Launch</h1>
         {owner && list.length > 0 && (
           <Button
             variant={editing ? 'primary' : 'secondary'}
@@ -191,14 +191,14 @@ export function LaunchTab() {
           <Skeleton label="Loading shortcuts" className="h-48" />
         ) : (
           <>
-            <ul className="grid grid-cols-2 gap-3 min-[420px]:grid-cols-3">
+            <ul className={`grid gap-2.5 ${editing ? 'grid-cols-2 land:grid-cols-4' : 'grid-cols-3 land:grid-cols-5 md:grid-cols-4'}`}>
               {list.map((s, i) => (
                 <li key={s.id}>
                   {editing ? (
                     <div className="flex h-full flex-col items-center gap-2 rounded-[var(--radius-card)] bg-[var(--color-surface)] p-3 ring-1 ring-inset ring-[var(--color-line)]">
                       <ShortcutIcon shortcut={s} />
                       <span className="w-full truncate text-center text-sm font-medium">{s.name}</span>
-                      <div className="flex gap-1">
+                      <div className="grid grid-cols-2 gap-1">
                         <IconButton label={`Move ${s.name} earlier`} size="md" variant="plain" disabled={i === 0} onClick={() => { move(i, -1) }}>
                           <ChevronLeft className="h-5 w-5" />
                         </IconButton>
@@ -224,13 +224,13 @@ export function LaunchTab() {
                   ) : (
                     <button
                       type="button"
-                      className="flex min-h-28 w-full flex-col items-center justify-center gap-2 rounded-[var(--radius-card)] bg-[var(--color-surface)] p-3 ring-1 ring-inset ring-[var(--color-line)] outline-none active:scale-[0.97] active:bg-[var(--color-surface-strong)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+                      className="flex min-h-24 w-full flex-col items-center justify-center gap-1.5 short:min-h-[5.25rem] land:min-h-20 rounded-[var(--radius-card)] bg-[var(--color-surface)] px-2 py-3 ring-1 ring-inset ring-[var(--color-line)] outline-none active:scale-[0.97] active:bg-[var(--color-surface-strong)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
                       onClick={() => {
                         launch(s)
                       }}
                     >
                       <ShortcutIcon shortcut={s} />
-                      <span className="w-full truncate text-center text-sm font-medium">{s.name}</span>
+                      <span className="line-clamp-2 w-full text-center text-sm leading-tight font-medium">{s.name}</span>
                     </button>
                   )}
                 </li>

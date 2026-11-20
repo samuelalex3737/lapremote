@@ -31,7 +31,7 @@ const SWIPE_PX = 80
 /** Large artwork with a soft glow; swipe it left for next and right for previous. */
 export function Artwork({ session, image }: { session: MediaSession; image: string | null }) {
   return (
-    <div className="relative mx-auto aspect-square w-full max-w-[340px]" data-no-swipe>
+    <div className="relative mx-auto aspect-square h-full max-h-[340px] max-w-full" data-no-swipe>
       {image !== null && (
         <img
           src={image}

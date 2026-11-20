@@ -47,6 +47,8 @@ test('the pairing screen passes the same checks', async ({ page }) => {
 test('swiping left and right changes tabs, but not on the trackpad', async ({ page, browserName }) => {
   test.skip(browserName !== 'chromium', 'touch swipes are driven through the Chromium DevTools protocol')
   await openPaired(page, { tab: 'launch' })
+  // Tabs load on demand: wait for the content before swiping over it.
+  await expect(page.getByRole('heading', { name: 'Launch' })).toBeVisible()
   const cdp = await page.context().newCDPSession(page)
   const box = await page.locator('main').boundingBox()
   if (box === null) throw new Error('no main')

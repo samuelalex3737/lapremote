@@ -6,6 +6,7 @@ import { useConnection } from '../store/remote.ts'
 import { neighbourTab, useUi, type TabId } from '../store/ui.ts'
 import { Skeleton, StatusPill } from '../ui/primitives.tsx'
 import { ContextBanner } from './ContextBanner.tsx'
+import { useContextSuggestion } from './useContextSuggestion.ts'
 import { TabBar } from './TabBar.tsx'
 
 const SWIPE_MIN_PX = 70
@@ -57,35 +58,49 @@ function TabFallback() {
   )
 }
 
-function ConnectionPill() {
+function useStatusText() {
   const status = useConnection((s) => s.status)
   const session = useConnection((s) => s.session)
   const latency = useConnection((s) => s.latencyMs)
   if (status.kind === 'connected' && session !== null) {
-    return (
-      <StatusPill tone="ok">
-        Connected to {session.hostName}
-        {latency !== null && ` · ${String(latency)}ms`}
-      </StatusPill>
-    )
+    return {
+      ok: true,
+      text: `Connected to ${session.hostName}${latency !== null ? ` · ${String(latency)}ms` : ''}`,
+    }
   }
-  return <StatusPill tone="warn">Reconnecting...</StatusPill>
+  if (status.kind === 'offline') {
+    return {
+      ok: false,
+      text: `Can't reach your laptop. Is it on the same Wi-Fi? Retrying in ${String(Math.ceil(status.retryInMs / 1000))}s.`,
+    }
+  }
+  if (status.kind === 'connecting') return { ok: false, text: "Can't reach your laptop. Is it on the same Wi-Fi?" }
+  return { ok: false, text: 'Reconnecting...' }
 }
 
-function OfflineBanner() {
-  const status = useConnection((s) => s.status)
-  if (status.kind !== 'offline' && status.kind !== 'connecting') return null
+/**
+ * One header row for everything above the content: the connection status, or a dot plus
+ * the context suggestion when there is one. Keeping it to one row leaves the screen for
+ * the controls.
+ */
+function Header() {
+  const status = useStatusText()
+  const suggestion = useContextSuggestion()
+  const compact = status.ok && suggestion.suggestion !== null
   return (
-    <motion.div
-      initial={{ height: 0, opacity: 0 }}
-      animate={{ height: 'auto', opacity: 1 }}
-      className="overflow-hidden"
-    >
-      <p role="alert" className="mx-4 rounded-2xl bg-[var(--color-warn)]/12 px-4 py-2 text-sm text-[var(--color-warn)] ring-1 ring-inset ring-[var(--color-warn)]/30">
-        Can't reach your laptop. Is it on the same Wi-Fi?
-        {status.kind === 'offline' && ` Retrying in ${String(Math.ceil(status.retryInMs / 1000))}s.`}
-      </p>
-    </motion.div>
+    <header className="px-4 pt-safe">
+      <div className="flex min-h-12 items-center justify-center gap-2 py-1 short:py-0.5 land:py-0.5">
+        {compact ? (
+          <p role="status" className="flex h-11 w-5 shrink-0 items-center justify-center">
+            <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-[var(--color-success)]" />
+            <span className="sr-only">{status.text}</span>
+          </p>
+        ) : (
+          <StatusPill tone={status.ok ? 'ok' : 'warn'}>{status.text}</StatusPill>
+        )}
+        {status.ok && <ContextBanner suggestion={suggestion} />}
+      </div>
+    </header>
   )
 }
 
@@ -119,17 +134,10 @@ export function Shell() {
   }
 
   return (
-    <div className="relative isolate flex h-full flex-col">
+    <div className="relative isolate flex h-full flex-col land:flex-row">
       <Backdrop visible={tab === 'now'} />
-      <header className="flex items-center justify-center px-4 pt-safe">
-        <div className="pt-3 pb-2">
-          <ConnectionPill />
-        </div>
-      </header>
-      <AnimatePresence>
-        <OfflineBanner />
-      </AnimatePresence>
-      <ContextBanner />
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <Header />
       <main
         className="relative min-h-0 flex-1 overflow-hidden"
         onPointerDown={onPointerDown}
@@ -151,12 +159,13 @@ export function Shell() {
             animate="center"
             exit="exit"
             transition={{ type: 'spring', stiffness: 420, damping: 40 }}
-            className="absolute inset-0 flex touch-pan-y flex-col overflow-y-auto px-4 pb-4"
+            className="absolute inset-0 flex touch-pan-y flex-col overflow-y-auto px-4 pb-3 short:pb-2 land:pb-2 md:mx-auto md:w-full md:max-w-2xl"
           >
             <Suspense fallback={<TabFallback />}>{TABS[tab]()}</Suspense>
           </motion.div>
         </AnimatePresence>
       </main>
+      </div>
       <TabBar />
     </div>
   )

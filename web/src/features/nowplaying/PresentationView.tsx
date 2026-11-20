@@ -66,16 +66,16 @@ export function PresentationView() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-3 short:gap-2 land:grid land:grid-cols-2 land:grid-rows-[auto_1fr] land:gap-2">
       {context?.category === 'presentation' && (
-        <p className="truncate text-sm text-[var(--color-text-secondary)]">
+        <p className="truncate text-sm text-[var(--color-text-secondary)] land:hidden">
           {context.app}
           {context.windowTitle !== '' && ` · ${context.windowTitle}`}
         </p>
       )}
       <button
         type="button"
-        className="flex min-h-48 items-center justify-center gap-3 rounded-[var(--radius-card)] bg-[var(--color-text)] text-2xl font-semibold text-[var(--color-bg)] outline-none active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+        className="flex min-h-32 flex-1 items-center justify-center gap-3 rounded-[var(--radius-card)] land:row-span-2 land:min-h-0 bg-[var(--color-text)] text-2xl font-semibold text-[var(--color-bg)] outline-none active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
         onClick={next}
       >
         Next slide
@@ -103,7 +103,7 @@ export function PresentationView() {
           Blank screen
         </Button>
       </div>
-      <Card className="flex items-center justify-between gap-3">
+      <Card className="flex items-center justify-between gap-3 short:py-2 land:flex-col land:items-start land:justify-center land:py-2">
         <div className="flex flex-col">
           <span className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]">Elapsed</span>
           <span className="text-3xl font-semibold tabular-nums" role="timer" aria-live="off">

@@ -213,9 +213,9 @@ export function AiScreen() {
   return (
     <div className="flex flex-col gap-4">
       {entries.length === 0 ? (
-        <Card className="flex flex-col gap-1">
+        <Card className="flex flex-col gap-1 short:py-3 land:py-2">
           <p className="font-medium">Tell your laptop what to do.</p>
-          <p className="text-sm text-[var(--color-text-secondary)]">
+          <p className="text-sm text-[var(--color-text-secondary)] land:hidden">
             Like "pause everything" or "volume 30 and next episode". Anything risky asks you first.
           </p>
         </Card>

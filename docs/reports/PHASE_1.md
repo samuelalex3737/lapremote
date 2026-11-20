@@ -34,7 +34,7 @@ Scan this with your phone's camera to pair:  [QR printed]
 INFO mdns_advertised service=_lapremote._tcp.local. host=lapremote.local. port=7799
 health: {"ok":true,"version":"0.1.0","uptime":8.3}
 GET / -> 200 no-cache <!doctype html>
-mdns browse: {'LapRemote on LAPTOP-DR7Q8MO7._lapremote._tcp.local.': ('lapremote.local.', 7799, ['172.20.67.157'])}
+mdns browse: {'LapRemote on MY-LAPTOP._lapremote._tcp.local.': ('lapremote.local.', 7799, ['172.20.67.157'])}
 ```
 `172.20.67.157` is the Wi-Fi adapter (Vite reported the same address as "Wi-Fi").
 

@@ -40,12 +40,12 @@ def test_banner_without_ip_explains_fix() -> None:
 
 
 def test_service_info() -> None:
-    info = build_service_info("192.168.1.20", 7777, "LAPTOP-DR7Q8MO7")
+    info = build_service_info("192.168.1.20", 7777, "MY-LAPTOP")
     assert info.type == SERVICE_TYPE
     assert info.server == HOST_NAME
     assert info.port == 7777
     assert info.addresses == [socket.inet_aton("192.168.1.20")]
-    assert info.name == f"LapRemote on LAPTOP-DR7Q8MO7.{SERVICE_TYPE}"
+    assert info.name == f"LapRemote on MY-LAPTOP.{SERVICE_TYPE}"
 
 
 def test_service_info_sanitises_instance_name() -> None:

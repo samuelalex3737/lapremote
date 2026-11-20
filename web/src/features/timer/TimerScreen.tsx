@@ -43,9 +43,9 @@ export function TimerScreen() {
   if (timer.active) {
     const left = remainingSeconds(timer.endsAt, now)
     return (
-      <Card className="flex flex-col items-center gap-4 py-8 text-center">
+      <Card className="flex flex-col items-center gap-4 py-8 text-center short:gap-3 short:py-5 land:gap-2 land:py-3">
         <MoonStar className="h-8 w-8 text-[var(--color-accent)]" aria-hidden="true" />
-        <p className="text-5xl font-semibold tabular-nums" role="timer">
+        <p className="text-5xl font-semibold tabular-nums land:text-4xl" role="timer">
           {formatCountdown(left)}
         </p>
         <p className="text-[var(--color-text-secondary)]">
@@ -69,11 +69,11 @@ export function TimerScreen() {
   const endIn = endOfMediaSeconds(session, now)
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3 short:gap-2 land:gap-2">
       <SegmentedControl label="When it ends" options={THEN_OPTIONS} value={then} onChange={setThen} />
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-3 short:gap-2 land:grid-cols-6 land:gap-2">
         {TIMER_PRESETS.map((m) => (
-          <Button key={m} size="lg" onClick={() => { set({ mode: 'minutes', minutes: m, then }) }}>
+          <Button key={m} size="lg" className="land:min-h-11" onClick={() => { set({ mode: 'minutes', minutes: m, then }) }}>
             {m} min
           </Button>
         ))}
