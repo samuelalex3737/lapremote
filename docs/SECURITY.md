@@ -141,6 +141,10 @@ configured cert and key, and refuses to start if either file is missing. See `do
   link-local addresses are accepted as laptops. A wake packet can only be sent to a laptop this
   agent has seen. Health checks to other laptops send nothing and read only `/api/health`.
 - **Lock screen**: plays a silent sound generated on the phone; nothing is downloaded.
+- **Wi-Fi address changes**: the laptop remembers its last LAN address in
+  `~/.lapremote/network.json` and checks it every 10 seconds (a local lookup, no packets
+  sent). A change only opens the local dashboard; it never changes a device's role. A phone that
+  pairs again at the new address is a guest until the person at the laptop makes it the owner.
 
 ## Residual risks and known limits
 

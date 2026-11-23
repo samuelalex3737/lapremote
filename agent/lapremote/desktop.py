@@ -30,6 +30,7 @@ from lapremote.config import CONFIG_FILENAME, Config, save_config
 from lapremote.core import Agent
 from lapremote.desktop_page import DASHBOARD_HTML
 from lapremote.logging_setup import get_logger, log_event
+from lapremote.netwatch import Move, NetworkWatch
 from lapremote.protocol import Role
 from lapremote.router import ActionError
 from lapremote.services import Services
@@ -151,7 +152,9 @@ def _autostart_state(ctx: DesktopContext) -> bool | None:
         return None
 
 
-def desktop_state(ctx: DesktopContext, lan_ip: str | None) -> dict[str, Any]:
+def desktop_state(
+    ctx: DesktopContext, lan_ip: str | None, moved: Move | None = None
+) -> dict[str, Any]:
     agent = ctx.agent
     code, seconds_left = agent.pairing.current()
     https = agent.config.https.enabled
@@ -180,6 +183,10 @@ def desktop_state(ctx: DesktopContext, lan_ip: str | None) -> dict[str, Any]:
         "autostart": _autostart_state(ctx),
         "devices": devices,
         "firstRun": len(devices) == 0,
+        # The laptop's Wi-Fi address changed: phones paired at the old one must pair again.
+        "networkMoved": (
+            {"from": moved.previous, "to": moved.current} if moved is not None and devices else None
+        ),
         "checklist": _checklist(ctx),
         "settings": {
             "preferredBrowser": config.preferred_browser,
@@ -220,8 +227,8 @@ def _error(message: str, status: int = 400) -> JSONResponse:
 def register_desktop(app: FastAPI, ctx: DesktopContext) -> None:
     agent = ctx.agent
 
-    def lan_ip() -> str | None:
-        return getattr(app.state, "lan_ip", None)
+    def network() -> NetworkWatch | None:
+        return getattr(app.state, "network", None)
 
     @app.get("/desktop", response_class=HTMLResponse, include_in_schema=False)
     async def dashboard(request: Request) -> HTMLResponse:
@@ -245,7 +252,11 @@ def register_desktop(app: FastAPI, ctx: DesktopContext) -> None:
     @app.get("/desktop/api/state", include_in_schema=False)
     async def state(request: Request) -> JSONResponse:
         _guard_read(request)
-        return JSONResponse(desktop_state(ctx, lan_ip()), headers={"Cache-Control": "no-store"})
+        watch = network()
+        return JSONResponse(
+            desktop_state(ctx, watch.ip if watch else None, watch.moved if watch else None),
+            headers={"Cache-Control": "no-store"},
+        )
 
     @app.post("/desktop/api/clipboard/send", include_in_schema=False)
     async def send_clipboard(request: Request) -> JSONResponse:

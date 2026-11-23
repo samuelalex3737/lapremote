@@ -207,6 +207,8 @@ def run_with_tray(
             open_url(ctl.dashboard_url())
 
     agent.on_startup.append(remember_loop)
+    # Registered before the server starts, so a change since the last run counts too.
+    app.state.network.on_move(ctl.on_network_move)
     thread = threading.Thread(target=server.run, name="lapremote-server", daemon=True)
     thread.start()
     icon = (make_icon or build_icon)(ctl)

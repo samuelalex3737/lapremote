@@ -37,6 +37,7 @@ from lapremote.discovery import Advertiser
 from lapremote.input.service import InputDevices
 from lapremote.logging_setup import get_logger, log_event, setup_logging
 from lapremote.media.base import MediaBackend
+from lapremote.netwatch import NETWORK_FILE, AddressMemory, Move, NetworkWatch
 from lapremote.peers import PeerService, mac_for_ip
 from lapremote.preview.calibration import CALIBRATION_PAGE
 from lapremote.preview.capture import Grabber
@@ -140,22 +141,58 @@ class ServerOptions:
     auth_timeout: float
 
 
+class _Announcer:
+    """Announces this laptop on the local network (mDNS) and watches for other laptops."""
+
+    def __init__(self, agent: Agent, port: int, peers: PeerService) -> None:
+        self._agent = agent
+        self._port = port
+        self._peers = peers
+        self._advertiser = Advertiser()
+
+    async def start(self, lan_ip: str) -> None:
+        agent = self._agent
+        extra = {
+            "id": self._peers.own_id,
+            "name": agent.host_name[:63],
+            "https": "1" if agent.config.https.enabled else "0",
+        }
+        mac = await asyncio.to_thread(mac_for_ip, lan_ip)
+        if mac is not None:
+            extra["mac"] = mac
+        if await self._advertiser.start(lan_ip, self._port, agent.host_name, extra):
+            zeroconf = self._advertiser.zeroconf
+            if zeroconf is not None:
+                await self._peers.start_watching(zeroconf.zeroconf, lan_ip)
+
+    async def move(self, move: Move) -> None:
+        """Announce again on the new network, from the new address."""
+        await self.stop()
+        await self.start(move.current)
+
+    async def stop(self) -> None:
+        await self._peers.stop_watching()
+        await self._advertiser.stop()
+
+
 def _make_lifespan(
-    agent: Agent, opts: ServerOptions, peers: PeerService
+    agent: Agent, opts: ServerOptions, peers: PeerService, network: NetworkWatch
 ) -> Callable[[FastAPI], contextlib.AbstractAsyncContextManager[None]]:
     @contextlib.asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         ip = opts.lan_ip if opts.lan_ip is not None else await asyncio.to_thread(detect_lan_ip)
-        app.state.lan_ip = ip
+        # Before anything else listens: a change since the last run opens the dashboard.
+        await network.start(ip)
         if opts.print_banner:
             https = agent.config.https.enabled
             minutes = int(CODE_TTL_SECONDS // 60)
 
             def show(code: str) -> None:
-                _print(render_banner(ip, opts.port, code, minutes, https=https))
+                _print(render_banner(network.ip, opts.port, code, minutes, https=https))
 
             agent.add_code_listener(show)
             show(agent.pairing.current()[0])
+            network.on_move(lambda _move: show(agent.pairing.current()[0]))
 
         async def watch_code() -> None:
             # Rotates the code (and reprints the banner) as soon as it expires.
@@ -163,32 +200,25 @@ def _make_lifespan(
                 await asyncio.sleep(1.0)
                 agent.pairing.current()
 
-        watcher = asyncio.create_task(watch_code())
-        advertiser = Advertiser()
+        tasks = [asyncio.create_task(watch_code())]
+        announcer = _Announcer(agent, opts.port, peers)
         if opts.advertise and ip is not None:
-            extra = {
-                "id": peers.own_id,
-                "name": agent.host_name[:63],
-                "https": "1" if agent.config.https.enabled else "0",
-            }
-            mac = mac_for_ip(ip)
-            if mac is not None:
-                extra["mac"] = mac
-            if await advertiser.start(ip, opts.port, agent.host_name, extra):
-                zeroconf = advertiser.zeroconf
-                if zeroconf is not None:
-                    await peers.start_watching(zeroconf.zeroconf, ip)
+            await announcer.start(ip)
+        if opts.lan_ip is None:  # a fixed address (tests) never changes
+            if opts.advertise:
+                network.on_move(announcer.move)
+            tasks.append(asyncio.create_task(network.run()))
         await agent.startup()
         log_event(log, "agent_started", version=__version__, port=opts.port, lanIp=ip)
         try:
             yield
         finally:
             await agent.shutdown()
-            watcher.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await watcher
-            await peers.stop_watching()
-            await advertiser.stop()
+            for task in tasks:
+                task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await task
+            await announcer.stop()
             for conn in agent.hub:
                 await conn.close(1001, "agent stopping")
             log_event(log, "agent_stopped")
@@ -299,6 +329,7 @@ def create_app(  # noqa: PLR0913 - explicit knobs keep tests free of monkeypatch
         print_banner=print_banner,
         auth_timeout=auth_timeout,
     )
+    network = NetworkWatch(AddressMemory(home / NETWORK_FILE), detect_lan_ip)
     started = time.monotonic()
     app = FastAPI(
         title="LapRemote agent",
@@ -306,10 +337,11 @@ def create_app(  # noqa: PLR0913 - explicit knobs keep tests free of monkeypatch
         docs_url=None,
         redoc_url=None,
         openapi_url=None,
-        lifespan=_make_lifespan(agent, opts, services.peers),
+        lifespan=_make_lifespan(agent, opts, services.peers, network),
     )
     app.state.agent = agent
     app.state.services = services
+    app.state.network = network
 
     @app.get("/api/health")
     async def health() -> HealthResponse:

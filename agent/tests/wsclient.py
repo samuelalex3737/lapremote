@@ -63,6 +63,7 @@ def make_app(
     site_icon: IconFetcher | None = None,
     wol_sender: Callable[[str, list[str]], None] | None = None,
     upload_folder: Path | None = None,
+    lan_ip: str | None = "127.0.0.1",
 ) -> FastAPI:
     # Never inject real input from tests: default to the dry-run backend.
     devices = input_devices or detect_input_devices("windows", None, dry_run=True)
@@ -70,7 +71,8 @@ def make_app(
         Config(),
         home=home,
         static_dir=static_dir or home / "no-static",
-        lan_ip="127.0.0.1",
+        # A fixed address unless a test watches it change (None detects it).
+        lan_ip=lan_ip,
         advertise=False,
         print_banner=False,
         console_log=False,

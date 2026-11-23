@@ -100,6 +100,7 @@ flowchart LR
 | `agent/lapremote/ai/` | Chat providers (Ollama, Groq, Gemini), the planner (prompt, validation, retry) and the AI service (plan, confirm, run) |
 | `agent/lapremote/desktop.py`, `desktop_page.py`, `assets/dashboard.html` | Localhost-only `/desktop` dashboard and its JSON API |
 | `agent/lapremote/tray.py` | Tray icon and menu (pystray); tray mode runs the server in a thread |
+| `agent/lapremote/netwatch.py` | Remembers and watches the Wi-Fi address; on a change the QR code, banner and mDNS follow, and the tray opens the pairing code |
 | `agent/lapremote/autostart.py` | Start at login on Windows, macOS and Linux |
 | `agent/packaging/entry.py` | Entry point for the PyInstaller build (`scripts/build_agent.py`) |
 | `agent/lapremote/apps.py`, `win_icons.py` | Installed apps, Microsoft Store app ids, real app icons |

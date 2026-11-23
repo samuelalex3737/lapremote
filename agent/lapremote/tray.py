@@ -21,6 +21,7 @@ from PIL import Image, ImageDraw
 from lapremote.autostart import Autostart
 from lapremote.core import Agent
 from lapremote.logging_setup import get_logger, log_event
+from lapremote.netwatch import Move
 
 log = get_logger("tray")
 
@@ -97,6 +98,13 @@ class TrayController:
 
     def open_pairing(self) -> None:
         self._open_url(self.dashboard_url("pair-title"))
+
+    async def on_network_move(self, move: Move) -> None:
+        """The Wi-Fi address changed: phones need the new code, so show it (if any are paired)."""
+        if not self.agent.devices.list():
+            return
+        log_event(log, "dashboard_opened_for_move", lanIp=move.current)
+        await asyncio.to_thread(self.open_pairing)
 
     def open_devices(self) -> None:
         self._open_url(self.dashboard_url("devices-title"))

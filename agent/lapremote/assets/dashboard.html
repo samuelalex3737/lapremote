@@ -62,6 +62,7 @@ input, select {
 .switch input { width: 22px; height: 22px; min-height: 0; accent-color: var(--accent); }
 .banner { border-radius: 12px; padding: 10px 14px; margin-top: 16px; background: var(--raised); }
 .banner.warn { color: var(--warn); }
+.banner p { margin: 0 0 6px; }
 ol.guide { margin: 0; padding-left: 20px; }
 ol.guide li { margin: 6px 0; }
 .toast { min-height: 22px; font-size: 13px; }
@@ -90,6 +91,11 @@ ol.guide li { margin: 6px 0; }
 
     <section class="card" aria-labelledby="pair-title">
       <h2 id="pair-title">Pair a phone</h2>
+      <div class="banner hidden" id="moved" role="status">
+        <p><strong>This laptop's Wi-Fi address changed</strong> (<span id="moved-from"></span> to <span id="moved-to"></span>), so phones paired before need this code once more.</p>
+        <p class="muted">A phone that pairs again joins as a guest: in Devices, use Make owner on it and Remove its old entry.</p>
+        <button id="moved-ok">Got it</button>
+      </div>
       <div class="row">
         <div class="qr" id="qr" role="img" aria-label="Pairing QR code"></div>
         <div>
@@ -262,10 +268,27 @@ function renderChecklist(items) {
   }
 }
 
+// "Got it" on the address-change note, remembered per new address on this laptop only.
+function movedSeen() {
+  try { return localStorage.getItem("lapremote.movedSeen"); } catch { return null; }
+}
+
+$("moved-ok").addEventListener("click", (event) => {
+  try { localStorage.setItem("lapremote.movedSeen", event.currentTarget.dataset.to || ""); } catch { /* private mode */ }
+  $("moved").classList.add("hidden");
+});
+
 function render(s) {
   $("host").textContent = s.hostName + " \u00b7 version " + s.version;
   $("guide").classList.toggle("hidden", !s.firstRun);
   $("paused-banner").classList.toggle("hidden", !s.paused);
+  const moved = s.networkMoved;
+  $("moved").classList.toggle("hidden", moved === null || movedSeen() === moved.to);
+  if (moved !== null) {
+    $("moved-from").textContent = moved.from;
+    $("moved-to").textContent = moved.to;
+    $("moved-ok").dataset.to = moved.to;
+  }
   $("code").textContent = s.pairing.code;
   const left = s.pairing.secondsLeft;
   $("expires").textContent = "Changes in " + Math.floor(left / 60) + ":" + String(left % 60).padStart(2, "0");
@@ -275,7 +298,7 @@ function render(s) {
     $("url").textContent = s.pairing.url;
   } else {
     $("qr").replaceChildren();
-    $("url").textContent = "No Wi-Fi address found. Connect to Wi-Fi, then restart LapRemote.";
+    $("url").textContent = "No Wi-Fi address found. Connect to Wi-Fi: the code appears here on its own.";
   }
   $("paused").checked = s.paused;
   const auto = $("autostart");

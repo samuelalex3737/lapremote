@@ -110,6 +110,7 @@ notes: [docs/AI.md](docs/AI.md).
 |---|---|
 | The phone can't connect | Same Wi-Fi on both? Allow LapRemote (or Python) on **Private networks** in Windows Security > Firewall. Some guest or office networks block devices from seeing each other. |
 | "port 7777 is already in use" | LapRemote is probably already running (check the tray). Or start with `--port 7790`. |
+| The phone asks to pair again | The laptop's Wi-Fi address changed (another network, or the router gave it a new one), and the browser keeps pairings per address. LapRemote opens the dashboard with the new code by itself. The phone joins as a guest: in Devices, use Make owner on it and Remove its old entry. |
 | The QR code doesn't work | The code changes every 5 minutes and works once. Use New code in the dashboard, or type the 6 digits on the pairing screen. |
 | A phone shows "Remote control is paused" | Untick Pause remote control in the tray or dashboard. |
 | The mouse doesn't move (macOS) | Give the terminal or LapRemote Accessibility permission in System Settings > Privacy & Security. |

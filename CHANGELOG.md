@@ -21,6 +21,9 @@ All notable changes to LapRemote. Versions follow [Semantic Versioning](https://
 - **Real icons** for your shortcuts: the website's own icon or the app's Windows icon.
 - **App picker**: add an app shortcut by picking from the laptop's installed apps.
 - **Light mode**: dark stays the default; the sun and moon button at the top switches.
+- **New Wi-Fi, new code shown**: when the laptop's Wi-Fi address changes (another network, or
+  a new address from the router), the dashboard opens at the pairing code, with a note on what
+  to do. This works both when LapRemote starts on a new network and while it runs.
 
 ### Fixes
 
@@ -30,6 +33,8 @@ All notable changes to LapRemote. Versions follow [Semantic Versioning](https://
   fixed on first use.
 - The phone's lock-screen code can no longer crash the app on browsers without MediaMetadata.
 - Two laptops with the same computer name no longer hide each other on the network.
+- The QR code, the terminal banner and the network announcement follow a Wi-Fi change while
+  LapRemote runs. Before, they kept the old address until a restart.
 
 ### Windows Smart App Control
 
