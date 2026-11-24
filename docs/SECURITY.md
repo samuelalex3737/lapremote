@@ -67,6 +67,7 @@ arguments. No argument ever contains text from the phone:
 | `shortcuts.py` | the preferred browser (found at a fixed install path or by `which`), `/usr/bin/open`, `gio`, or a stored app | one argument: an http(s) URL that has already been validated, or a stored app path or bundle id validated when it was saved (must exist and be an app type). No shell and no extra arguments. On Windows apps start with `os.startfile`. |
 | `tray.py` | `/usr/bin/open` (macOS), `xdg-open` (Linux); `os.startfile` on Windows | one argument: LapRemote's own logs folder |
 | `tray.py`, `__main__.py` | the default browser via `webbrowser.open` | the fixed local dashboard URL `http://127.0.0.1:<port>/desktop` |
+| `autostart.py` | `schtasks.exe` (Windows) | `/create` with an XML file LapRemote writes (fixed program and arguments, the current user), `/query` and `/delete` for the task named LapRemote |
 | `system/power.py` | `shutdown` (Windows), `pmset` / `osascript` (macOS), `loginctl` / `systemctl` (Linux) | fixed arguments chosen from the action name |
 
 Power actions also need a single-use, action-bound confirm token that lives for 10 seconds
@@ -114,8 +115,9 @@ configured cert and key, and refuses to start if either file is missing. See `do
   connected and can still pair, ping, list devices and fetch artwork. The flag is saved in
   `config.json`.
 - Start at login writes one fixed command, built from the running interpreter or the packaged
-  executable: a `HKCU\...\Run` value on Windows, a LaunchAgent plist on macOS, an XDG
-  autostart entry on Linux. Nothing from a phone goes into it.
+  executable: a Task Scheduler task on Windows (sign-in trigger for this user only, run as
+  that user with least privilege, never elevated; no admin needed to create it), a LaunchAgent
+  plist on macOS, an XDG autostart entry on Linux. Nothing from a phone goes into it.
 
 ## Additions after v1.0.0
 

@@ -1,6 +1,8 @@
 """Start LapRemote when the person logs in.
 
-Windows: a value under HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run.
+Windows: a Task Scheduler task that runs when this user signs in (no admin needed). The
+Run registry key was used before, but Windows skipped it silently on a real laptop
+(Windows 11 build 26300), so creating the task also removes the old Run value.
 macOS: ~/Library/LaunchAgents/com.lapremote.agent.plist.
 Linux: ~/.config/autostart/lapremote.desktop (XDG autostart).
 
@@ -15,8 +17,13 @@ import plistlib
 import shlex
 import subprocess
 import sys
+import tempfile
+import time
+import xml.etree.ElementTree as ET
+from collections.abc import Callable
 from pathlib import Path
 from typing import Protocol
+from xml.sax.saxutils import escape
 
 from lapremote.protocol import OsName
 
@@ -84,20 +91,187 @@ class CurrentUserRegistry:
             return
 
 
+TASK_NS = "{http://schemas.microsoft.com/windows/2004/02/mit/task}"
+# How long a read of the task is trusted: the dashboard asks every few seconds.
+TASK_CACHE_SECONDS = 30.0
+
+TaskRunner = Callable[[list[str]], tuple[int, str]]
+
+
+def run_schtasks(args: list[str]) -> tuple[int, str]:
+    """Run schtasks.exe with no console window; returns the exit code and its output."""
+    flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    try:
+        done = subprocess.run(  # noqa: S603 - fixed program, arguments built here
+            ["schtasks.exe", *args],  # noqa: S607 - a Windows system tool
+            capture_output=True,
+            timeout=20,
+            check=False,
+            creationflags=flags,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        msg = f"schtasks failed: {exc}"
+        raise OSError(msg) from exc
+    # schtasks prints in the console code page, whatever the XML header says.
+    codec = "oem" if sys.platform == "win32" else "utf-8"
+    return done.returncode, (done.stdout or done.stderr).decode(codec, errors="replace")
+
+
+def current_windows_user() -> str:
+    """DOMAIN\\user for the signed-in person: the task runs only for them."""
+    if sys.platform == "win32":
+        import ctypes  # noqa: PLC0415 - Windows only
+
+        size = ctypes.c_ulong(256)
+        buffer = ctypes.create_unicode_buffer(size.value)
+        # 2 = NameSamCompatible, such as LAPTOP-1234\sam
+        if ctypes.windll.secur32.GetUserNameExW(2, buffer, ctypes.byref(size)):
+            return str(buffer.value)
+    return f"{os.environ.get('USERDOMAIN', '')}\\{os.environ.get('USERNAME', '')}"
+
+
+TASK_TEMPLATE = """<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Author>LapRemote</Author>
+    <Description>Starts LapRemote, the phone remote for this laptop, when you sign in. \
+Turn it off with Start at login in the LapRemote tray menu.</Description>
+  </RegistrationInfo>
+  <Triggers>
+    <LogonTrigger>
+      <Enabled>true</Enabled>
+      <UserId>{user}</UserId>
+    </LogonTrigger>
+  </Triggers>
+  <Principals>
+    <Principal id="Author">
+      <UserId>{user}</UserId>
+      <LogonType>InteractiveToken</LogonType>
+      <RunLevel>LeastPrivilege</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <AllowHardTerminate>true</AllowHardTerminate>
+    <StartWhenAvailable>false</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>
+    <IdleSettings>
+      <StopOnIdleEnd>false</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <AllowStartOnDemand>true</AllowStartOnDemand>
+    <Enabled>true</Enabled>
+    <Hidden>false</Hidden>
+    <RunOnlyIfIdle>false</RunOnlyIfIdle>
+    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
+    <Priority>5</Priority>
+    <RestartOnFailure>
+      <Interval>PT1M</Interval>
+      <Count>3</Count>
+    </RestartOnFailure>
+  </Settings>
+  <Actions Context="Author">
+    <Exec>
+      <Command>{program}</Command>
+      <Arguments>{arguments}</Arguments>
+    </Exec>
+  </Actions>
+</Task>
+"""
+
+
+def task_xml(command: list[str], user: str) -> str:
+    """Start at this user's sign-in, keep running (on battery too), retry after a crash."""
+    return TASK_TEMPLATE.format(
+        user=escape(user),
+        program=escape(command[0]),
+        arguments=escape(windows_command_line(command[1:])),
+    )
+
+
+def task_matches(xml_text: str, command: list[str]) -> bool:
+    """Whether the registered task is turned on and runs this command."""
+    start = xml_text.find("<Task")
+    if start < 0:
+        return False
+    try:
+        root = ET.fromstring(xml_text[start:])  # noqa: S314 - schtasks output, not the network
+    except ET.ParseError:
+        return False
+
+    def text(*names: str) -> str:
+        found = root.find("/".join(TASK_NS + n for n in names))
+        return (found.text or "").strip() if found is not None else ""
+
+    return (
+        text("Settings", "Enabled") in {"", "true"}
+        and text("Actions", "Exec", "Command").lower() == command[0].lower()
+        and text("Actions", "Exec", "Arguments") == windows_command_line(command[1:])
+    )
+
+
 class WindowsAutostart:
-    def __init__(self, registry: RegistryLike, command: list[str], key: str = RUN_KEY) -> None:
+    """A Task Scheduler task named LapRemote, run at this user's sign-in."""
+
+    def __init__(
+        self,
+        command: list[str],
+        *,
+        run: TaskRunner = run_schtasks,
+        registry: RegistryLike | None = None,
+        user: str | None = None,
+        name: str = APP_NAME,
+        clock: Callable[[], float] = time.monotonic,
+    ) -> None:
+        self._command = command
+        self._run = run
         self._registry = registry
-        self._command = windows_command_line(command)
-        self._key = key
+        self._user = user
+        self._name = name
+        self._clock = clock
+        self._cached: tuple[float, bool] | None = None
 
     def is_enabled(self) -> bool:
-        return self._registry.get(self._key, APP_NAME) == self._command
+        now = self._clock()
+        if self._cached is not None and now - self._cached[0] < TASK_CACHE_SECONDS:
+            return self._cached[1]
+        code, output = self._run(["/query", "/tn", self._name, "/xml"])
+        enabled = code == 0 and task_matches(output, self._command)
+        self._cached = (now, enabled)
+        return enabled
 
     def enable(self) -> None:
-        self._registry.set(self._key, APP_NAME, self._command)
+        xml = task_xml(self._command, self._user or current_windows_user())
+        fd, name = tempfile.mkstemp(prefix="lapremote-task-", suffix=".xml")
+        path = Path(name)
+        try:
+            with os.fdopen(fd, "wb") as handle:
+                handle.write(xml.encode("utf-16"))
+            code, output = self._run(["/create", "/tn", self._name, "/xml", str(path), "/f"])
+        finally:
+            path.unlink(missing_ok=True)
+            self._cached = None
+        if code != 0:
+            msg = f"couldn't create the sign-in task: {output.strip()}"
+            raise OSError(msg)
+        self._remove_run_value()
 
     def disable(self) -> None:
-        self._registry.delete(self._key, APP_NAME)
+        self._cached = None
+        code, _output = self._run(["/query", "/tn", self._name])
+        if code == 0:
+            code, output = self._run(["/delete", "/tn", self._name, "/f"])
+            if code != 0:
+                msg = f"couldn't remove the sign-in task: {output.strip()}"
+                raise OSError(msg)
+        self._remove_run_value()
+
+    def _remove_run_value(self) -> None:
+        # Older versions used the Run key; left there it would start a second copy.
+        if self._registry is not None:
+            self._registry.delete(RUN_KEY, APP_NAME)
 
 
 class MacAutostart:
@@ -159,7 +333,7 @@ class LinuxAutostart:
 def create_autostart(os_name: OsName, command: list[str] | None = None) -> Autostart:
     command = command or launch_command()
     if os_name == "windows":
-        return WindowsAutostart(CurrentUserRegistry(), command)
+        return WindowsAutostart(command, registry=CurrentUserRegistry())
     if os_name == "macos":
         return MacAutostart(Path.home() / "Library" / "LaunchAgents", command)
     config_home = os.environ.get("XDG_CONFIG_HOME") or str(Path.home() / ".config")

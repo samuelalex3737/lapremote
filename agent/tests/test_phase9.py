@@ -20,10 +20,15 @@ from fastapi.testclient import TestClient
 from lapremote import __main__ as entry
 from lapremote.autostart import (
     APP_NAME,
+    RUN_KEY,
     LinuxAutostart,
     MacAutostart,
     WindowsAutostart,
+    current_windows_user,
     launch_command,
+    run_schtasks,
+    task_matches,
+    task_xml,
 )
 from lapremote.config import load_config
 from lapremote.tray import TrayController, menu_entries, tray_image
@@ -221,19 +226,104 @@ class FakeRegistry:
         self.values.pop((key, name), None)
 
 
-def test_windows_autostart_quotes_paths_with_spaces() -> None:
+class FakeScheduler:
+    """Stands in for schtasks.exe: keeps registered task XML by name."""
+
+    def __init__(self, *, fail_create: bool = False) -> None:
+        self.tasks: dict[str, str] = {}
+        self.calls: list[list[str]] = []
+        self.fail_create = fail_create
+
+    def __call__(self, args: list[str]) -> tuple[int, str]:
+        self.calls.append(args)
+        action, name = args[0], args[2]
+        if action == "/create":
+            if self.fail_create:
+                return 1, "ERROR: Access is denied.\r\n"
+            self.tasks[name] = Path(args[4]).read_bytes().decode("utf-16")
+            return 0, "SUCCESS\r\n"
+        if name not in self.tasks:
+            return 1, "ERROR: The system cannot find the file specified.\r\n"
+        if action == "/delete":
+            del self.tasks[name]
+            return 0, "SUCCESS\r\n"
+        return 0, self.tasks[name] if "/xml" in args else "LapRemote  Ready\r\n"
+
+
+PROGRAM = r"C:\Program Files\LapRemote\pythonw.exe"
+
+
+def test_windows_autostart_is_a_sign_in_task() -> None:
+    scheduler = FakeScheduler()
     registry = FakeRegistry()
+    # Left over from older versions: removed so it can't start a second copy.
+    registry.set(RUN_KEY, APP_NAME, "old command")
     auto = WindowsAutostart(
-        registry, [r"C:\Program Files\LapRemote\pythonw.exe", "-m", "lapremote"]
+        [PROGRAM, "-m", "lapremote"], run=scheduler, registry=registry, user=r"LAPTOP\sam & co"
     )
     assert auto.is_enabled() is False
     auto.enable()
-    value = registry.values[(r"Software\Microsoft\Windows\CurrentVersion\Run", APP_NAME)]
-    assert value == r'"C:\Program Files\LapRemote\pythonw.exe" -m lapremote'
+    xml = scheduler.tasks[APP_NAME]
+    assert f"<Command>{PROGRAM}</Command>" in xml
+    assert "<Arguments>-m lapremote</Arguments>" in xml
+    assert r"<UserId>LAPTOP\sam &amp; co</UserId>" in xml  # escaped, only this person
+    assert "<LogonType>InteractiveToken</LogonType>" in xml  # in the session: tray icon shows
+    assert "<RunLevel>LeastPrivilege</RunLevel>" in xml  # never as administrator
+    assert "<DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>" in xml  # a laptop
+    assert "<StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>" in xml
+    assert "<ExecutionTimeLimit>PT0S</ExecutionTimeLimit>" in xml  # never stopped after 72 h
+    assert "<RestartOnFailure>" in xml
+    assert registry.get(RUN_KEY, APP_NAME) is None
     assert auto.is_enabled() is True
     auto.disable()
+    assert APP_NAME not in scheduler.tasks
     assert auto.is_enabled() is False
     auto.disable()  # already off: no error
+
+
+def test_windows_autostart_notices_changes_made_in_task_scheduler() -> None:
+    scheduler = FakeScheduler()
+    now = [0.0]
+    auto = WindowsAutostart(
+        [PROGRAM, "-m", "lapremote"], run=scheduler, user=r"LAPTOP\sam", clock=lambda: now[0]
+    )
+    auto.enable()
+    assert auto.is_enabled() is True
+    queries = len(scheduler.calls)
+    assert auto.is_enabled() is True  # the dashboard asks often: read from the cache
+    assert len(scheduler.calls) == queries
+    # Turned off by hand in Task Scheduler: noticed once the cache is old.
+    scheduler.tasks[APP_NAME] = scheduler.tasks[APP_NAME].replace(
+        "<Enabled>true</Enabled>\n    <Hidden>", "<Enabled>false</Enabled>\n    <Hidden>"
+    )
+    now[0] += 31
+    assert auto.is_enabled() is False
+    # A task for another copy of LapRemote (another folder) doesn't count as this one.
+    other = WindowsAutostart([r"D:\Other\pythonw.exe", "-m", "lapremote"], run=scheduler)
+    auto.enable()
+    assert other.is_enabled() is False
+
+
+def test_windows_autostart_reports_a_failure() -> None:
+    registry = FakeRegistry()
+    registry.set(RUN_KEY, APP_NAME, "old command")
+    auto = WindowsAutostart(
+        [PROGRAM], run=FakeScheduler(fail_create=True), registry=registry, user=r"LAPTOP\sam"
+    )
+    with pytest.raises(OSError, match="Access is denied"):
+        auto.enable()
+    # Nothing half done: the old way still starts it.
+    assert registry.get(RUN_KEY, APP_NAME) == "old command"
+    assert "<Arguments></Arguments>" in task_xml([PROGRAM], r"LAPTOP\sam")
+
+
+def test_task_output_that_is_not_ours_is_not_enabled() -> None:
+    assert task_matches("", [PROGRAM]) is False
+    assert task_matches("<Task><broken", [PROGRAM]) is False
+    xml = task_xml([PROGRAM, "-m", "lapremote"], r"LAPTOP\sam")
+    assert task_matches(xml, [PROGRAM, "-m", "lapremote"]) is True
+    assert task_matches(xml, [r"D:\Other\pythonw.exe", "-m", "lapremote"]) is False
+    assert task_matches(xml, [PROGRAM, "-m", "other"]) is False
 
 
 def test_mac_and_linux_autostart_files(tmp_path: Path) -> None:
@@ -263,22 +353,22 @@ def test_launch_command_from_source() -> None:
         assert Path(command[0]).name.lower() in {"pythonw.exe", "python.exe"}
 
 
-@pytest.mark.skipif(sys.platform != "win32", reason="real registry round trip is Windows only")
-def test_real_registry_round_trip_on_a_scratch_key() -> None:
-    import winreg  # noqa: PLC0415
-
-    from lapremote.autostart import CurrentUserRegistry  # noqa: PLC0415
-
-    scratch = r"Software\LapRemoteTest\Run"
-    auto = WindowsAutostart(CurrentUserRegistry(), ["C:/x/LapRemote.exe"], key=scratch)
+@pytest.mark.skipif(sys.platform != "win32", reason="real Task Scheduler is Windows only")
+def test_real_task_scheduler_round_trip_with_a_scratch_task() -> None:
+    # A harmless command under a test name, removed at the end.
+    command = [r"C:\Windows\System32\cmd.exe", "/c", "exit", "0"]
+    auto = WindowsAutostart(command, name="LapRemoteTest")
     try:
         auto.enable()
         assert auto.is_enabled()
+        code, xml = run_schtasks(["/query", "/tn", "LapRemoteTest", "/xml"])
+        assert code == 0
+        assert "<LogonTrigger>" in xml
+        assert current_windows_user().lower() in xml.lower()
         auto.disable()
         assert not auto.is_enabled()
     finally:
-        winreg.DeleteKey(winreg.HKEY_CURRENT_USER, scratch)
-        winreg.DeleteKey(winreg.HKEY_CURRENT_USER, r"Software\LapRemoteTest")
+        run_schtasks(["/delete", "/tn", "LapRemoteTest", "/f"])
 
 
 # ---------------------------------------------------------------- tray

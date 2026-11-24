@@ -35,6 +35,10 @@ All notable changes to LapRemote. Versions follow [Semantic Versioning](https://
 - Two laptops with the same computer name no longer hide each other on the network.
 - The QR code, the terminal banner and the network announcement follow a Wi-Fi change while
   LapRemote runs. Before, they kept the old address until a restart.
+- **Start at login works again on Windows.** Windows skipped LapRemote's startup entry (the
+  Run registry key) at a real sign-in. It is now a Task Scheduler task that starts at sign-in,
+  also on battery, never times out and restarts after a crash. Turning Start at login on moves
+  an old entry over.
 - Started at login before the Wi-Fi connected, LapRemote now announces itself on the network
   once the Wi-Fi is up (other laptops and the dashboard find it without a restart).
 
