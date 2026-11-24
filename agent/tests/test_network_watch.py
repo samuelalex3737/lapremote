@@ -218,3 +218,45 @@ def test_tray_mode_on_the_same_network_opens_nothing(isolated_home: Path) -> Non
         open_url=opened.append,
     )
     assert opened == []
+
+
+def test_wifi_connecting_after_login_is_announced_without_a_move(tmp_path: Path) -> None:
+    # At login LapRemote can start before the Wi-Fi connects. When it does connect (same
+    # network as last time) the laptop must be announced, but nothing needs pairing again.
+    async def scenario() -> None:
+        AddressMemory(tmp_path / NETWORK_FILE).record("172.20.82.96")
+        watch = _watch(tmp_path, [None, "172.20.82.96", "172.20.82.96", None, "192.168.1.33"])
+        addresses: list[str] = []
+        moves: list[Move] = []
+        watch.on_address(addresses.append)
+        watch.on_move(moves.append)
+        await watch.start(None)
+        assert await watch.check() is None  # still offline
+        assert addresses == []
+        assert await watch.check() is None  # Wi-Fi up, same network: no move
+        assert addresses == ["172.20.82.96"]
+        assert await watch.check() is None  # nothing new
+        assert await watch.check() is None  # offline again keeps the address
+        assert watch.ip == "172.20.82.96"
+        move = await watch.check()  # then another network
+        assert addresses == ["172.20.82.96", "192.168.1.33"]
+        assert moves == [move] == [Move("172.20.82.96", "192.168.1.33")]
+
+    asyncio.run(scenario())
+
+
+def test_starting_offline_shows_the_code_once_wifi_connects(
+    isolated_home: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    answers: list[str | None] = [None]
+    monkeypatch.setattr(server, "detect_lan_ip", lambda: answers[0])
+    monkeypatch.setattr(netwatch, "CHECK_SECONDS", 0.02)
+    app = make_app(isolated_home, lan_ip=None)
+    with TestClient(app):
+        local = TestClient(app, **LOCAL)  # type: ignore[arg-type]
+        assert local.get("/desktop/api/state").json()["pairing"]["url"] is None
+        answers[0] = "172.20.82.96"
+        _wait_for(lambda: app.state.network.ip == "172.20.82.96")
+        state = local.get("/desktop/api/state").json()
+        assert state["pairing"]["url"].startswith("http://172.20.82.96:7777/?pair=")
+        assert state["networkMoved"] is None

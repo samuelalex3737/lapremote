@@ -37,7 +37,7 @@ from lapremote.discovery import Advertiser
 from lapremote.input.service import InputDevices
 from lapremote.logging_setup import get_logger, log_event, setup_logging
 from lapremote.media.base import MediaBackend
-from lapremote.netwatch import NETWORK_FILE, AddressMemory, Move, NetworkWatch
+from lapremote.netwatch import NETWORK_FILE, AddressMemory, NetworkWatch
 from lapremote.peers import PeerService, mac_for_ip
 from lapremote.preview.calibration import CALIBRATION_PAGE
 from lapremote.preview.capture import Grabber
@@ -165,10 +165,10 @@ class _Announcer:
             if zeroconf is not None:
                 await self._peers.start_watching(zeroconf.zeroconf, lan_ip)
 
-    async def move(self, move: Move) -> None:
-        """Announce again on the new network, from the new address."""
+    async def restart(self, lan_ip: str) -> None:
+        """Announce again from a new address (another network, or Wi-Fi just connected)."""
         await self.stop()
-        await self.start(move.current)
+        await self.start(lan_ip)
 
     async def stop(self) -> None:
         await self._peers.stop_watching()
@@ -192,7 +192,7 @@ def _make_lifespan(
 
             agent.add_code_listener(show)
             show(agent.pairing.current()[0])
-            network.on_move(lambda _move: show(agent.pairing.current()[0]))
+            network.on_address(lambda _ip: show(agent.pairing.current()[0]))
 
         async def watch_code() -> None:
             # Rotates the code (and reprints the banner) as soon as it expires.
@@ -206,7 +206,7 @@ def _make_lifespan(
             await announcer.start(ip)
         if opts.lan_ip is None:  # a fixed address (tests) never changes
             if opts.advertise:
-                network.on_move(announcer.move)
+                network.on_address(announcer.restart)
             tasks.append(asyncio.create_task(network.run()))
         await agent.startup()
         log_event(log, "agent_started", version=__version__, port=opts.port, lanIp=ip)

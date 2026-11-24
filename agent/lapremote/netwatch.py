@@ -15,6 +15,7 @@ import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from lapremote.logging_setup import get_logger, log_event
 from lapremote.storage import write_json_atomic
@@ -32,6 +33,7 @@ class Move:
 
 
 MoveListener = Callable[[Move], Awaitable[None] | None]
+AddressListener = Callable[[str], Awaitable[None] | None]
 
 
 class AddressMemory:
@@ -74,11 +76,18 @@ class NetworkWatch:
         self._detect = detect
         self._every = every
         self._listeners: list[MoveListener] = []
+        self._address_listeners: list[AddressListener] = []
         self.ip: str | None = None
         self.moved: Move | None = None
 
     def on_move(self, listener: MoveListener) -> None:
+        """Called when the address differs from the one remembered (another network)."""
         self._listeners.append(listener)
+
+    def on_address(self, listener: AddressListener) -> None:
+        """Called whenever a check finds a new address, including the first one after
+        starting offline (at login, before the Wi-Fi connects)."""
+        self._address_listeners.append(listener)
 
     async def start(self, ip: str | None) -> None:
         """Set the address found at startup; tells listeners if it changed since last run."""
@@ -92,6 +101,9 @@ class NetworkWatch:
         if ip is None or ip == self.ip:
             return None
         self.ip = ip
+        log_event(log, "network_address", lanIp=ip)
+        for listener in list(self._address_listeners):
+            await _call(listener, ip)
         return await self._record(ip)
 
     async def run(self) -> None:
@@ -109,10 +121,15 @@ class NetworkWatch:
         self.moved = move
         log_event(log, "network_changed", previous=move.previous, lanIp=move.current)
         for listener in list(self._listeners):
-            try:
-                result = listener(move)
-                if inspect.isawaitable(result):
-                    await result
-            except Exception as exc:
-                log_event(log, "network_listener_failed", level=logging.WARNING, error=str(exc))
+            await _call(listener, move)
         return move
+
+
+async def _call(listener: Callable[[Any], Awaitable[None] | None], value: object) -> None:
+    """Run one listener; a failing one must not block the others."""
+    try:
+        result = listener(value)
+        if inspect.isawaitable(result):
+            await result
+    except Exception as exc:
+        log_event(log, "network_listener_failed", level=logging.WARNING, error=str(exc))

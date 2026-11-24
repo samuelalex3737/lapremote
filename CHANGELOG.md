@@ -35,6 +35,8 @@ All notable changes to LapRemote. Versions follow [Semantic Versioning](https://
 - Two laptops with the same computer name no longer hide each other on the network.
 - The QR code, the terminal banner and the network announcement follow a Wi-Fi change while
   LapRemote runs. Before, they kept the old address until a restart.
+- Started at login before the Wi-Fi connected, LapRemote now announces itself on the network
+  once the Wi-Fi is up (other laptops and the dashboard find it without a restart).
 
 ### Windows Smart App Control
 
